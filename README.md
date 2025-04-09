@@ -1,6 +1,6 @@
 # Backend Service for Titanic Survivor Prediction Application
 
-This service is built using FastAPI to handle business logic, manage API endpoints, and coordinate ML model inference and administrative tasks for the Titanic Survivor Prediction Application. All configuration is pre-integrated so that no manual environment variable setup is needed. The backend is production-ready and fully documented.
+This FastAPI-based backend service handles the business logic, API endpoints, and communication with the ML model service for real-time survival predictions. It is fully production-ready and containerized for seamless deployment.
 
 ## Table of Contents
 
@@ -15,40 +15,29 @@ This service is built using FastAPI to handle business logic, manage API endpoin
 
 ## Overview
 
-The backend service is the cornerstone of the Titanic Survivor Prediction Application. It exposes a robust RESTful API to:
-- Process user requests for survival prediction.
-- Interface securely with the dedicated model service for ML inference.
-- Provide administrative endpoints for model management (listing, training, deletion).
-- Integrate seamlessly with the authentication and data persistence layer.
-
-This service leverages asynchronous processing for optimal performance and is designed to operate within a containerized Docker environment, ensuring scalability and high availability.
+The backend service is a critical component that:
+- Processes user requests for survival predictions.
+- Securely interfaces with the model service to deliver real-time results.
+- Exposes administrative endpoints for model management (listing, training, deletion).
+- Integrates with the authentication and data storage layer provided by Supabase.
 
 ## Features
 
-- **RESTful API with OpenAPI Specification:**  
-  Self-documented endpoints accessible via Swagger UI.
-- **Fast and Asynchronous:**  
-  Utilizes FastAPI’s asynchronous capabilities for swift request processing.
-- **Integrated ML Model Inference:**  
-  Interfaces with the dedicated model service to deliver real-time predictions.
-- **Administrative Endpoints:**  
-  Supports secure model management (viewing, training, deletion) as per the Project Charter.
-- **Zero Local Configuration:**  
-  The service is fully configured to run out of the box using Docker Compose, eliminating manual environment variable setups.
-- **Robust Security:**  
-  Secured endpoints ensure that only authenticated users gain access to extended functionalities.
+- **RESTful API with OpenAPI Documentation**: Accessible via Swagger UI.
+- **Asynchronous Processing**: Optimized for performance using FastAPI's asynchronous capabilities.
+- **Integrated ML Inference**: Communicates with the dedicated model service.
+- **Zero Local Configuration**: Pre-configured to run via Docker Compose.
+- **Robust Security**: Secure endpoints with proper authentication.
 
 ## Getting Started
 
 1. **Clone the Repository:**
-
    ```bash
    git clone https://your.git.repo/app/backend.git
    cd app/backend
    ```
 
 2. **Create a Virtual Environment and Install Dependencies:**
-
    ```bash
    python3 -m venv venv
    source venv/bin/activate
@@ -57,62 +46,44 @@ This service leverages asynchronous processing for optimal performance and is de
 
 ## Development
 
-- **Run Locally:**  
-  Use the following command to start the FastAPI server with auto-reload enabled for development:
-  
+- **Run Locally:**
   ```bash
   uvicorn main:app --reload --host 0.0.0.0 --port 8000
   ```
+  This will start the FastAPI server with auto-reload for development.
 
-- **Code Quality:**  
-  - **Linting:** Run `flake8` to identify and fix styling issues.
-  - **Formatting:** Use `black` to enforce consistent code formatting.
+- **Code Quality Tools:**
+  - Run `flake8` for linting.
+  - Run `black` for code formatting.
 
 ## Testing
 
-- **Unit and Integration Tests:**  
-  The backend is covered by comprehensive tests. Run the tests using:
-  
-  ```bash
-  pytest
-  ```
+Run the tests using:
+```bash
+pytest
+```
+Ensure that both unit and integration tests pass before merging changes.
 
 ## Deployment
 
-This service is designed for production deployment using Docker. All configuration is embedded in the Docker setup.
-
-- **Build and Run with Docker Compose:**  
-  From the root of the repository, start all services with:
-  
-  ```bash
-  docker-compose up --build -d
-  ```
-  
-  This command builds and launches the backend along with the frontend, model service, and Supabase instance.
+This service is built for production deployment using Docker. To build and run with Docker Compose, execute:
+```bash
+docker-compose up --build -d
+```
 
 ## Troubleshooting
 
-- **Common Issues:**
-  - Check service logs via Docker for any errors:
-    
-    ```bash
-    docker-compose logs backend
-    ```
-    
-  - Ensure that dependent services (Model and Supabase) are running successfully.
-  - Verify that the Docker network is routing requests correctly by checking the container statuses:
-    
-    ```bash
-    docker-compose ps
-    ```
-    
-- **Documentation:**  
-  Detailed API and architectural documentation are available via the integrated Swagger UI at [http://localhost:8000/docs](http://localhost:8000/docs).
+- **Service Logs:**
+  ```bash
+  docker-compose logs backend
+  ```
+- **Service Status:**
+  ```bash
+  docker-compose ps
+  ```
+- **Network Issues:**
+  Verify that dependent services (Model Service, Supabase) are running.
 
 ## Documentation
 
-For further details on API endpoints, administrative interfaces, and internal architecture, please refer to the project documentation in the `/docs` submodule. The documentation is maintained to align with the latest updates from the Project Charter.
-
----
-
-*This backend is part of a larger, fully orchestrated system designed to demonstrate modern agile practices, robust scalability, and a seamless user experience in Titanic survival prediction.*
+Detailed API and architectural documentation is available via the integrated Swagger UI at [http://localhost:8000/docs](http://localhost:8000/docs) and is complemented by the [Project Charter](https://mygit.th-deg.de/schober-teaching/student-projects/ain-23-software-engineering/ss-25/Random_Iceberg/docker-compose/-/wikis/home) in the docs submodule.
