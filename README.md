@@ -2,6 +2,21 @@
 
 This FastAPI-based backend service handles the business logic, API endpoints, and communication with the ML model service for real-time survival predictions. It is fully production-ready and containerized for seamless deployment.
 
+## Project Structure
+
+The backend service is built with FastAPI to handle business logic and API endpoints. Its structure promotes clarity and ease of testing:
+
+```
+app/backend/
+├── main.py                # FastAPI application entry point
+├── requirements.txt       # Python dependencies and environment settings
+├── README.md              # Backend service documentation
+├── routers/               # Modular API route definitions
+├── models/                # Data models and schemas
+├── services/              # Business logic and integration layers (e.g., ML interfacing, authentication)
+└── tests/                 # Unit and integration tests
+```
+
 ## Table of Contents
 
 - [Overview](#overview)
