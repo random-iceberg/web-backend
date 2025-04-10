@@ -2,13 +2,43 @@ from models.schemas import PassengerData, PredictionResult
 
 def predict_survival(data: PassengerData) -> PredictionResult:
     """
-    Simulates ML model inference for Titanic survival using heuristic logic.
-    TODO: Replace this with your model integration call in production.
+    Orchestrates the prediction process by breaking the prediction logic into small functions.
+    
+    TODO:
+      - Integrate with an external ML inference service or library.
+      - Chain small functions for validation, inference, formatting, and logging.
     """
-    try:
-        # Example heuristic: younger passengers or those paying high fare have improved chances.
-        survived = data.age < 18 or data.fare > 50
-        probability = 0.85 if survived else 0.15
-        return PredictionResult(survived=survived, probability=probability)
-    except Exception as exc:
-        raise Exception(f"Error during prediction: {exc}")
+    _validate_passenger_data(data)
+    prediction_score = _inference_model_call(data)
+    result = _format_prediction_result(prediction_score)
+    # TODO: Optionally, log the prediction result to a database or monitoring service.
+    return result
+
+def _validate_passenger_data(data: PassengerData) -> None:
+    """
+    Validates the passenger input data.
+    
+    TODO:
+      - Implement detailed validation for each field (e.g. pclass, age, sex, etc.).
+    """
+    pass
+
+def _inference_model_call(data: PassengerData) -> float:
+    """
+    Calls the ML inference module or external service to get the prediction score.
+    
+    TODO:
+      - Construct the inference request.
+      - Handle the API call and response from the ML model service.
+    """
+    pass
+
+def _format_prediction_result(score: float) -> PredictionResult:
+    """
+    Formats the raw inference score into a structured PredictionResult.
+    
+    TODO:
+      - Map the raw score to a boolean survival outcome.
+      - Populate additional fields (such as prediction probability).
+    """
+    pass
