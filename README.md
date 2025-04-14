@@ -1,104 +1,120 @@
-# Backend Service for Titanic Survivor Prediction Application
-
-This FastAPI-based backend service handles the business logic, API endpoints, and communication with the ML model service for real-time survival predictions. It is fully production-ready and containerized for seamless deployment.
-
-## Project Structure
-
-The backend service is built with FastAPI to handle business logic and API endpoints. Its structure promotes clarity and ease of testing:
-
-```
-app/backend/
-├── main.py                # FastAPI application entry point
-├── requirements.txt       # Python dependencies and environment settings
-├── README.md              # Backend service documentation
-├── routers/               # Modular API route definitions
-├── models/                # Data models and schemas
-├── services/              # Business logic and integration layers (e.g., ML interfacing, authentication)
-└── tests/                 # Unit and integration tests
-```
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Getting Started](#getting-started)
-- [Development](#development)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Troubleshooting](#troubleshooting)
-- [Documentation](#documentation)
+# Backend Web for Titanic Survivor Prediction Application
 
 ## Overview
 
-The backend service is a critical component that:
-- Processes user requests for survival predictions.
-- Securely interfaces with the model service to deliver real-time results.
-- Exposes administrative endpoints for model management (listing, training, deletion).
-- Integrates with the authentication and data storage layer provided by Supabase.
+The Backend Web is a FastAPI-based RESTful API responsible for processing Titanic survival prediction requests. It securely integrates with the ML Model API for real-time inference and handles core business logic, authentication, and middleware integration. Built for production, the service supports asynchronous processing, comprehensive API documentation, and containerized deployment via Docker Compose.
 
 ## Features
 
-- **RESTful API with OpenAPI Documentation**: Accessible via Swagger UI.
-- **Asynchronous Processing**: Optimized for performance using FastAPI's asynchronous capabilities.
-- **Integrated ML Inference**: Communicates with the dedicated model service.
-- **Zero Local Configuration**: Pre-configured to run via Docker Compose.
-- **Robust Security**: Secure endpoints with proper authentication.
+- **Interactive API Documentation:** Accessible via Swagger UI at `/docs`.
+- **Asynchronous Processing:** Utilizes FastAPI’s async framework for high performance.
+- **Modular Architecture:** Organized into routers, models, and services to ease maintenance and scalability.
+- **Secure ML Integration:** Seamlessly communicates with the dedicated Model API for predictions.
+- **Containerized Deployment:** Fully supported via Docker Compose for reproducible production environments.
+- **Extensible Design:** Prepared for future enhancements including advanced authentication, logging, and error handling.
+
+## Project Structure
+
+```plaintext
+app/backend/
+├── main.py                # FastAPI application entry point
+├── requirements.txt       # Python dependencies
+├── README.md              # Backend Web documentation (this file)
+├── routers/               # Modular API route definitions (e.g., prediction endpoints)
+├── models/                # Data models and request/response schemas
+├── services/              # Business logic layers (including ML integration and authentication)
+└── tests/                 # Unit and integration tests
+```
 
 ## Getting Started
 
-1. **Clone the Repository:**
+### Prerequisites
+
+- Python 3.9.x
+- Virtual environment (recommended)
+- Docker & Docker Compose (for containerized deployment)
+
+### Setup Instructions
+
+Follow these steps to set up your development environment:
+
+1. **Clone the Repository (with Submodules)**  
+   Clone the repository together with all its submodules:
    ```bash
-   git clone https://your.git.repo/app/backend.git
-   cd app/backend
+   git clone --recurse-submodules https://mygit.th-deg.de/schober-teaching/student-projects/ain-23-software-engineering/ss-25/Random_Iceberg/web-backend.git
    ```
 
-2. **Create a Virtual Environment and Install Dependencies:**
+2. **Enter the Project Directory**  
+   Change directory into the Docker Compose folder:
    ```bash
-   python3 -m venv venv
-   source venv/bin/activate
+   cd docker-compose
+   ```
+
+3. **Checkout the Development Branch**  
+   Create and switch to a local branch named `dev` that tracks the remote development branch:
+   ```bash
+   git checkout -b dev origin/dev
+   ```
+
+4. **Update All Submodules**  
+   Initialize and update every submodule recursively:
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+5. **Create and Activate a Virtual Environment:**
+   (From the appropriate directory, e.g., `app/backend`) activate Python 3.9.x virtual environment
+   ```bash
+   py -3.9 -m venv .venv
+   source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+   ```
+
+6. **Install Dependencies:**
+   ```bash
    pip install -r requirements.txt
    ```
 
-## Development
+7. **Run the Application Locally:**
+   ```bash
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   ```
+   Access the API at [http://localhost:8000](http://localhost:8000) and the interactive documentation at [http://localhost:8000/docs](http://localhost:8000/docs).
 
-- **Run Locally:**
+## Development & Testing
+
+- **Development:**  
+  Use uvicorn with `--reload` to benefit from live code updates.
+- **Code Quality:**  
+  Maintain standards using linters (e.g., flake8) and formatters (e.g., black). Perform regular code reviews.
+- **Testing:**  
+  Run tests with:
   ```bash
-  uvicorn main:app --reload --host 0.0.0.0 --port 8000
+  pytest
   ```
-  This will start the FastAPI server with auto-reload for development.
-
-- **Code Quality Tools:**
-  - Run `flake8` for linting.
-  - Run `black` for code formatting.
-
-## Testing
-
-Run the tests using:
-```bash
-pytest
-```
-Ensure that both unit and integration tests pass before merging changes.
 
 ## Deployment
 
-This service is built for production deployment using Docker. To build and run with Docker Compose, execute:
+Deploy the Backend Web along with other components using Docker Compose:
 ```bash
 docker-compose up --build -d
 ```
+This command builds the Docker image and launches the container in an orchestrated environment.
 
 ## Troubleshooting
 
-- **Service Logs:**
+- **View Logs:**
   ```bash
   docker-compose logs backend
   ```
-- **Service Status:**
+- **Check Container Status:**
   ```bash
   docker-compose ps
   ```
-- **Network Issues:**
-  Verify that dependent services (Model Service, Supabase) are running.
 
-## Documentation
+## Documentation & References
 
-Detailed API and architectural documentation is available via the integrated Swagger UI at [http://localhost:8000/docs](http://localhost:8000/docs) and is complemented by the [Project Charter](https://mygit.th-deg.de/schober-teaching/student-projects/ain-23-software-engineering/ss-25/Random_Iceberg/docker-compose/-/wikis/home) in the docs submodule.
+For further API specifications, architectural details, and integration guidelines, please refer to the [Project Charter](#) and the additional documentation in the `docs/` submodule.
+
+---
+
+Maintained by **team/random_iceberg**.
