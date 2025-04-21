@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from routers import prediction
+from fastapi.middleware.cors import CORSMiddleware
+from routers import prediction, models
 
 def create_app() -> FastAPI:
     """
@@ -14,7 +15,29 @@ def create_app() -> FastAPI:
         description="Production-ready backend API for Titanic survival prediction.",
         version="1.0.0"
     )
+
+        # Configure CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # TODO: Restrict to specific origins in production
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     include_routers(app)
+        # Add a root route
+    @app.get("/")
+    async def root():
+        return {
+            "message": "Welcome to the Titanic Survivor Prediction API",
+            "docs_url": "/docs",
+            "available_endpoints": [
+                "/models",
+                "/models/train",
+                "/predict"
+            ]
+        }
     return app
 
 def include_routers(app: FastAPI) -> None:
@@ -25,6 +48,7 @@ def include_routers(app: FastAPI) -> None:
       - Include additional routers for authentication, administration, health checks, etc.
     """
     app.include_router(prediction.router, prefix="/predict", tags=["Prediction"])
+    app.include_router(models.router, prefix="/models", tags=["Model Management"])
 
 # Instantiate the application
 app = create_app()
