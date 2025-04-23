@@ -1,8 +1,11 @@
+from os import environ
+
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import prediction, models
 
-def create_app() -> FastAPI:
+def create_app(root_path: str) -> FastAPI:
     """
     Create and configure the FastAPI application instance.
     
@@ -13,7 +16,8 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Titanic Survivor Prediction Backend",
         description="Production-ready backend API for Titanic survival prediction.",
-        version="1.0.0"
+        version="1.0.0",
+        root_path=root_path
     )
 
         # Configure CORS
@@ -51,8 +55,4 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(models.router, prefix="/models", tags=["Model Management"])
 
 # Instantiate the application
-app = create_app()
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app.backend.main:app", host="0.0.0.0", port=8000, reload=True)
+app = create_app(root_path=environ.get("BACKEND_WEB_ROOT", ""))
