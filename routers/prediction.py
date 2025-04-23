@@ -14,8 +14,9 @@ async def predict_passenger_survival(data: PassengerData) -> PredictionResult:
       - Add logging and enhanced error handling as needed.
     """
     try:
-        result = predict_survival(data)
-        return result
+        return PredictionResult(survived=False) # TODO placeholder
+        # result = predict_survival(data)
+        # return result
     except Exception as exc:
         # TODO: Enhance with proper logging and error response details.
         raise HTTPException(status_code=500, detail="Internal Server Error")

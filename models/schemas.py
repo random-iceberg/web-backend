@@ -16,4 +16,4 @@ class PredictionResult(BaseModel):
     TODO:
       - Define fields such as survived (bool) and probability (float).
     """
-    pass
+    survived: bool # TODO placeholder
