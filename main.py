@@ -23,7 +23,7 @@ def create_app(root_path: str) -> FastAPI:
         # Configure CORS
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # TODO: Restrict to specific origins in production
+        allow_origins=["http://localhost", "http://localhost:80", "http://localhost:3000"],  # TODO: Restrict to specific origins in production
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
