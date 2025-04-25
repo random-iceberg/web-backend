@@ -2,9 +2,10 @@ from os import environ
 
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from routers import prediction
 
-def create_app(root_path: str) -> FastAPI:
+def create_app() -> FastAPI:
     """
     Create and configure the FastAPI application instance.
     
@@ -16,7 +17,6 @@ def create_app(root_path: str) -> FastAPI:
         title="Titanic Survivor Prediction Backend",
         description="Production-ready backend API for Titanic survival prediction.",
         version="1.0.0",
-        root_path=root_path
     )
     include_routers(app)
     return app
@@ -31,4 +31,4 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(prediction.router, prefix="/predict", tags=["Prediction"])
 
 # Instantiate the application
-app = create_app(root_path=environ.get("BACKEND_WEB_ROOT", ""))
+app = create_app()
