@@ -8,13 +8,13 @@ services:
       watch:
         - path: ./requirements.txt
           action: rebuild
-        - path: ./main.py
+        - path: ./entry.py
           action: sync+restart
-          target: /app/main.py
+          target: /app/entry.py
         - path: .
           ignore: # TODO: refine
             - requirements.txt
-            - main.py
+            - entry.py
           action: sync
           target: /app
 
