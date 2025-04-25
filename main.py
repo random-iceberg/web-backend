@@ -3,9 +3,10 @@ from os import environ
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from routers import prediction, models
 
-def create_app(root_path: str) -> FastAPI:
+def create_app() -> FastAPI:
     """
     Create and configure the FastAPI application instance.
     
@@ -17,10 +18,9 @@ def create_app(root_path: str) -> FastAPI:
         title="Titanic Survivor Prediction Backend",
         description="Production-ready backend API for Titanic survival prediction.",
         version="1.0.0",
-        root_path=root_path
     )
 
-        # Configure CORS
+    # Configure CORS
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost", "http://localhost:80", "http://localhost:3000"],  # TODO: Restrict to specific origins in production
@@ -55,4 +55,4 @@ def include_routers(app: FastAPI) -> None:
     app.include_router(models.router, prefix="/models", tags=["Model Management"])
 
 # Instantiate the application
-app = create_app(root_path=environ.get("BACKEND_WEB_ROOT", ""))
+app = create_app()
