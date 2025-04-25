@@ -1,4 +1,8 @@
 fastapi
 uvicorn
 pydantic
+typing
 routers
+os
+httpx
+logging
