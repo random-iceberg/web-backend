@@ -26,17 +26,24 @@ def predict_survival(data: PassengerData) -> PredictionResult:
 
 def _validate_passenger_data(data: PassengerData) -> None:
     """
-    Perform any additional validation not covered by Pydantic models.
-    Raise ValueError on any rule violation.
+    Validates the passenger input data.
+
+    TODO:
+      - Implement detailed validation for each field (e.g. pclass, age, sex, etc.).
     """
     # Example: enforce realistic passenger age
     if data.age <= 0 or data.age > 120:
         raise ValueError(f"Invalid age: {data.age}. Must be between 0 and 120.")
 
 
+
 def _inference_model_call(data: PassengerData) -> float:
     """
-    Send a POST request to the ML inference service and parse the probability.
+    Calls the ML inference module or external service to get the prediction score.
+
+    TODO:
+      - Construct the inference request.
+      - Handle the API call and response from the ML model service.
     """
     payload = data.model_dump()
     try:
@@ -58,9 +65,14 @@ def _inference_model_call(data: PassengerData) -> float:
         raise RuntimeError(f"Invalid probability value: {body['probability']}")
 
 
+
 def _format_prediction_result(score: float) -> PredictionResult:
     """
-    Convert raw score into a structured PredictionResult.
+    Formats the raw inference score into a structured PredictionResult.
+
+    TODO:
+      - Map the raw score to a boolean survival outcome.
+      - Populate additional fields (such as prediction probability).
     """
     survived = score >= 0.5
     return PredictionResult(survived=survived, probability=score)
