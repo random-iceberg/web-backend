@@ -5,7 +5,7 @@ services:
       context: .
       target: dev
     ports:
-      - "8000:8000"          # ← <host>:<container>
+      - "8002:8000"          # ← <host>:<container>
     develop:
       watch:
         - path: ./requirements.txt

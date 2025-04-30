@@ -1,9 +1,9 @@
 import os
 import httpx
 from models.schemas import PassengerData, PredictionResult
+from settings import settings
 
 # URL of the external ML inference service
-MODEL_API_URL = os.getenv("MODEL_API_URL", "http://localhost:8001/predict")
 
 
 def predict_survival(data: PassengerData) -> PredictionResult:
@@ -47,7 +47,7 @@ def _inference_model_call(data: PassengerData) -> float:
     """
     payload = data.model_dump()
     try:
-        response = httpx.post(MODEL_API_URL, json=payload, timeout=5.0)
+        response = httpx.post(settings.model_api_url, json=payload, timeout=5.0)
         response.raise_for_status()
         body = response.json()
     except httpx.RequestError as e:

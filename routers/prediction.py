@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
 import logging
@@ -7,7 +7,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
 
 @router.post("/", response_model=PredictionResult, summary="Predict Titanic Survival")
 async def predict_passenger_survival(data: PassengerData, request: Request) -> PredictionResult:
@@ -29,7 +28,6 @@ async def predict_passenger_survival(data: PassengerData, request: Request) -> P
     client_host = request.client.host if request.client else 'unknown'
     logger.info("Prediction request received", extra={
         "client_ip": client_host,
-        "payload": data.model_dump()
     })
 
     try:
@@ -40,6 +38,7 @@ async def predict_passenger_survival(data: PassengerData, request: Request) -> P
         logger.info("Prediction completed successfully", extra={
             "result": result.model_dump()
         })
+
         return result
 
     except ValueError as ve:
