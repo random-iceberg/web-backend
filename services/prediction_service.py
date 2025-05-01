@@ -98,5 +98,9 @@ def _format_prediction_result(score: float) -> PredictionResult:
       - Map the raw score to a boolean survival outcome.
       - Populate additional fields (such as prediction probability).
     """
+    if not (0.0 <= score <= 1.0):
+        logger.error(f"Invalid score: {score}. Must be between 0 and 1.")
+
+
     survived = score >= 0.5
     return PredictionResult(survived=survived, probability=score)
