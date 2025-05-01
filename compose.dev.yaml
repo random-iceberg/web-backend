@@ -21,10 +21,3 @@ services:
             - entry.py
           action: sync
           target: /app
-
-  model-api:
-    build: ./model-api
-    expose:
-      - "8000"
-    networks:
-      - backend
