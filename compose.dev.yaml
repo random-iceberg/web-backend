@@ -1,11 +1,13 @@
 # (Part of) configuration for local development
 services:
   backend:
+  
     build:
       context: .
       target: dev
     ports:
       - "8002:8000"          # ← <host>:<container>
+
     develop:
       watch:
         - path: ./requirements.txt
@@ -19,3 +21,10 @@ services:
             - entry.py
           action: sync
           target: /app
+
+  model-api:
+    build: ./model-api
+    expose:
+      - "8000"
+    networks:
+      - backend
