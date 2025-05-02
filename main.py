@@ -75,6 +75,14 @@ def create_app() -> FastAPI:
 
     include_routers(app)
 
+    # Health check endpoint
+    @app.get("/health", tags=["Health"])
+    async def health_check():
+        """
+        Simple health check endpoint to verify the service is running.
+        """
+        return {"status": "ok"}
+
     @app.get("/", include_in_schema=False)  # Exclude from OpenAPI schema, Because.
     async def root_redirect():
         return RedirectResponse(url="/docs")
