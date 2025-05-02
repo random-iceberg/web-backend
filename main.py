@@ -20,9 +20,9 @@ async def lifespan(app: FastAPI):
     user = environ["DB_USER"]
     database = environ["DB_DATABASE"]
     address = environ["DB_ADDRESS"]
-    password_file = environ["DB_PASSWORD_FILE"]
-    with open(password_file) as f:
-        password = f.read(1024)
+    password = environ["DB_PASSWORD"]
+    # with open(password_file) as f:
+    #     password = f.read(1024)
 
     engine = create_async_engine(
         f"postgresql+asyncpg://{user}:{password}@{address}/{database}",
