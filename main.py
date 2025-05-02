@@ -1,15 +1,42 @@
+from contextlib import asynccontextmanager
 import logging
 import time
 from os import environ
 
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
-from routers import prediction, models
+from sqlalchemy.ext.asyncio import create_async_engine
 
+import db
+from routers import prediction, models
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Init
+    user = environ["DB_USER"]
+    database = environ["DB_DATABASE"]
+    address = environ["DB_ADDRESS"]
+    password_file = environ["DB_PASSWORD_FILE"]
+    with open(password_file) as f:
+        password = f.read(1024)
+
+    engine = create_async_engine(
+        f"postgresql+asyncpg://{user}:{password}@{address}/{database}",
+        echo=True,
+    )
+    async_session = await db.helpers.init_db(engine)
+
+    await db.helpers.populate_features(async_session)
+
+    # Available in Request.state
+    yield {"async_session": async_session}
+
+    # Clean
+    await engine.dispose()
 
 
 def create_app() -> FastAPI:
@@ -24,6 +51,7 @@ def create_app() -> FastAPI:
         title="Titanic Survivor Prediction Backend",
         description="Production-ready backend API for Titanic survival prediction.",
         version="1.0.0",
+        lifespan=lifespan,
     )
 
     # logging middleware shifted here from models.py, Recommended by Lev
@@ -45,10 +73,8 @@ def create_app() -> FastAPI:
         )
         return response
 
-
     include_routers(app)
 
- 
     @app.get("/", include_in_schema=False)  # Exclude from OpenAPI schema, Because.
     async def root_redirect():
         return RedirectResponse(url="/docs")

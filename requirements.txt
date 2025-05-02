@@ -1,5 +1,8 @@
+# TODO separate development (e.g. black) and container dependencies
 fastapi
 uvicorn
 pydantic
 routers
 black
+sqlalchemy
+asyncpg
