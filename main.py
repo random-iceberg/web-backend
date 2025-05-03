@@ -64,6 +64,12 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Titanic Survivor Prediction Backend",
         description="Production-ready backend API for Titanic survival prediction.",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        swagger_ui_parameters={
+            "syntaxHighlight": True,
+            "docExpansion": "none"
+        },
         version="1.0.0",
         lifespan=lifespan,
     )
