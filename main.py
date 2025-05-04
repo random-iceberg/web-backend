@@ -65,7 +65,7 @@ def create_app() -> FastAPI:
         title="Titanic Survivor Prediction Backend",
         description="Production-ready backend API for Titanic survival prediction.",
         docs_url="/docs",
-        redoc_url="/redoc",
+        redoc_url=None,
         swagger_ui_parameters={
             "syntaxHighlight": True,
             "docExpansion": "none"
