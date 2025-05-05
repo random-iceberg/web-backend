@@ -4,6 +4,7 @@ import time
 from os import environ
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import create_async_engine
 from asyncpg.exceptions import InvalidPasswordError
@@ -64,8 +65,24 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Titanic Survivor Prediction Backend",
         description="Production-ready backend API for Titanic survival prediction.",
+        docs_url="/docs",
+        redoc_url=None,
+        swagger_ui_parameters={
+            "syntaxHighlight": True,
+            "docExpansion": "none",
+        },
         version="1.0.0",
         lifespan=lifespan,
+    )
+
+    origins = environ.get("ALLOWED_ORIGINS", "*").split(",")
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # logging middleware shifted here from models.py, Recommended by Lev
@@ -75,7 +92,9 @@ def create_app() -> FastAPI:
         client_ip = request.headers.get("x-forwarded-for") or (
             request.client.host if request.client else "unknown"
         )
-        logger.info(f"Request: {request.method} {request.url.path} - Client: {client_ip}")
+        logger.info(
+            f"Request: {request.method} {request.url.path} - Client: {client_ip}"
+        )
 
         response = await call_next(request)
 
@@ -106,6 +125,7 @@ def create_app() -> FastAPI:
     return app
 
 
+# TODO: this function is not even invoked
 def include_routers(app: FastAPI) -> None:
     """
     Include API routers.
