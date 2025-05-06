@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, HTTPException
 from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
 import logging

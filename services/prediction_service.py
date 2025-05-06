@@ -14,82 +14,61 @@ def predict_survival(data: PassengerData) -> PredictionResult:
       3. Format and return the prediction result.
     """
     # Domain-specific validation (beyond Pydantic)
-    _validate_passenger_data(data)
+    validation = _validate_passenger_data(data)
 
+    if validation is None:
     # Perform inference
-    score: float = _inference_model_call(data)
+        score: float = _inference_model_call(data)
+        
+        # Format into PredictionResult
+        result: PredictionResult = _format_prediction_result(score)
+        return result
+    else:
+        return validation
 
-    # Format into PredictionResult
-    result: PredictionResult = _format_prediction_result(score)
-    return result
+#TODO: mock response about invalid data
+def _validate_passenger_data(data: PassengerData) -> str | None:
+    try:
+        if data.passengerClass not in [1, 2, 3]:
+            raise ValueError("Invalid passenger class: must be 1, 2 or 3.")
+        
+        if data.sex.lower() not in ["male", "female"]:
+            raise ValueError("Invalid sex: must be 'male' or 'female'")
+        
+        if not isinstance(data.age, (int, float)):
+            raise ValueError("Invalid age: must be a number.")
 
+        if data.age < 0 or data.age >= 120:
+            raise ValueError("Invalid age: must be between 0 and 120.")
 
-def _validate_passenger_data(data: PassengerData) -> None:
+        if not isinstance(data.sibsp, int) or data.sibsp < 0:
+            raise ValueError("Invalid sibsp: must be a non-negative integer.")
+        
+        if not isinstance(data.parch, int) or data.parch < 0:
+            raise ValueError("Invalid parch: must be a non-negative integer.")
+        
+        if data.embarkationPort.upper() not in ["C", "Q", "S"]:
+            raise ValueError("Invalid embarkation port: must be 'C', 'Q', or 'S'.")
 
-    # Validates the passenger input data.
+        if not isinstance(data.wereAlone, bool):
+            raise ValueError("Invalid wereAlone: must be a boolean.")
 
-    if data.passengerClass not in [1, 2, 3]:
-        raise ValueError("Invalid passenger class: must be 1, 2 or 3.")
+        if not isinstance(data.cabinKnown, bool):
+            raise ValueError("Invalid cabinKnown: must be a boolean.")
+
+    except Exception as e:
+        return f"Error: {e}"
     
-    if data.sex.lower() not in ["male", "female"]:
-        raise ValueError("Invalid sex: must be 'Male' or 'Female'")
-    
-    if not isinstance(data.age, (int, float)):
-        raise ValueError("Invalid age: must be a number.")
+    return None
 
-    if data.age < 0 or data.age >= 120:
-        raise ValueError("Invalid age: must be between 0 and 120.")
 
-    if not isinstance(data.sibsp, int) or data.sibsp < 0:
-        raise ValueError("Invalid sibsp: must be a non-negative integer.")
-    
-    if not isinstance(data.parch, int) or data.parch < 0:
-        raise ValueError("Invalid parch: must be a non-negative integer.")
-    
-    if data.embarkation_port.upper() not in ["C", "Q", "S"]:
-        raise ValueError("Invalid embarkation port: must be 'C', 'Q', or 'S'.")
-
-    if not isinstance(data.is_alone, bool):
-        raise ValueError("Invalid is_alone: must be a boolean.")
-
-    if data.family_size != data.sibsp + data.parch + 1:
-        raise ValueError("Invalid family_size: must equal sibsp + parch + 1.")
-
-    if not isinstance(data.cabin_known, bool):
-        raise ValueError("Invalid cabin_known: must be a boolean.")
 
 def _inference_model_call(data: PassengerData) -> float:
-    """
-    Calls the ML inference module or external service to get the prediction score.
+    #TODO: add call to MODEL_SERVICE_API
+    #TODO: add error handling for post request
+    #TODO: add handling for the returned data
 
-    TODO:
-      - Construct the inference request.
-      - Handle the API call and response from the ML model service.
-    """
-    payload = data.model_dump()
-    try:
-        response = httpx.post(MODEL_SERVICE_API, json=payload, timeout=5.0)
-        response.raise_for_status()
-        body = response.json()
-
-    except httpx.Timeout as e:
-        logger.error(f"Model API request timed out after {e.request_timeout} seconds: {e}")
-
-    except httpx.RequestError as e:
-        logger.error(f"Failed to connect to Model API: {e}")
-    except httpx.HTTPStatusError as e:
-        logger.error(f"Model API returned HTTP {e.response.status_code}: {e.response.text}")
-
-    # Expect the response to contain a 'probability' key
-    if 'probability' not in body:
-        logger.error(f"Malformed response from Model API: {body}")
-
-    try:
-        return float(body['probability'])
-    except (TypeError, ValueError):
-        logger.error(f"Invalid probability value: {body['probability']}")
-
-
+    return 0.85
 
 def _format_prediction_result(score: float) -> PredictionResult:
     """
