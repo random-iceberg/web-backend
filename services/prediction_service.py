@@ -2,8 +2,9 @@ import httpx
 from models.schemas import PassengerData, PredictionResult
 import logging
 
+#TODO: remove httpx, do over the network container yapping #
 logger = logging.getLogger(__name__)
-MODEL_SERVICE_API = "http://model-api:8000/predict"
+MODEL_SERVICE_API = ""
 
 def predict_survival(data: PassengerData) -> PredictionResult:
     """
