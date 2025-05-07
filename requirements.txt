@@ -3,6 +3,7 @@ fastapi
 uvicorn
 pydantic
 routers
+httpx
 black
 sqlalchemy
 asyncpg

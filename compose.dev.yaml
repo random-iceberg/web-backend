@@ -1,9 +1,11 @@
 # (Part of) configuration for local development
 services:
   backend:
+  
     build:
       context: .
       target: dev
+
     develop:
       watch:
         - path: ./requirements.txt
@@ -17,4 +19,3 @@ services:
             - entry.py
           action: sync
           target: /app
-

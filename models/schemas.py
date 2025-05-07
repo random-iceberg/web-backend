@@ -1,28 +1,27 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Literal, List, Optional
 from datetime import datetime
-
 
 class PassengerData(BaseModel):
     """
     Data model representing input information for a Titanic passenger.
-
-    TODO:
-      - Define passenger fields (e.g., pclass, age, sex, etc.)
+   - Define passenger fields (e.g., pclass, age, sex, etc.)"
     """
-
-    pass
+    age: float = Field(..., gt=0, description="Passenger's age")
+    sibsp: int = Field(..., ge=0, description="Number of siblings/spouses aboard")
+    parch: int = Field(..., ge=0, description="Number of parents/children aboard")
+    passengerClass: Literal[1, 2, 3] = Field(..., description="Class of the ticket (1st, 2nd, 3rd)")
+    sex: Literal["male", "female"]
+    embarkationPort: Literal["C", "Q", "S"]
+    wereAlone: bool
+    cabinKnown: bool
 
 
 class PredictionResult(BaseModel):
     """
-    Data model for the result of a survival prediction.
-
-    Fields:
-      - survived: bool indicating whether the passenger survived
-      - probability: float probability of survival (0.0 to 1.0)
+    Data model for the result of a survival prediction
+    - Define fields such as survived (bool) and probability (float).
     """
-
     survived: bool = Field(..., description="True if the passenger survived")
     probability: float = Field(..., description="Survival probability between 0 and 1")
 
