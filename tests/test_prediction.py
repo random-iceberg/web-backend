@@ -3,7 +3,8 @@ from main import app
 
 client = TestClient(app)
 
-# Test 
+
+# Test
 def test_predict_success():
     payload = {
         "pclass": 3,
@@ -18,7 +19,7 @@ def test_predict_success():
     assert (
         response.status_code == 200
     ), f"Expected status code 200, got {response.status_code}"
-    
+
     data = response.json()
     assert "survived" in data, "Response missing 'survived' field"
     assert "probability" in data, "Response missing 'probability' field"

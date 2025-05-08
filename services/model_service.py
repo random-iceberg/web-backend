@@ -1,8 +1,10 @@
 import uuid
 import logging
+import os
 
 import asyncio
-from fastapi import BackgroundTasks
+import httpx
+from fastapi import BackgroundTasks, HTTPException
 from sqlalchemy import select
 from sqlalchemy import desc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -147,26 +149,88 @@ async def _train_model_task(
         model_id (str): ID of the model to train
         model_data (ModelCreate): Model configuration
     """
+    logger.info(f"Starting training for model {model_id} ({model_data.name})")
+    MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
+
     try:
-        logger.info(f"Starting training for model {model_id} ({model_data.name})")
+        async with httpx.AsyncClient() as client:
+            # Health check for the model service
+            try:
+                health_response = await client.get(
+                    f"{MODEL_SERVICE_URL}/health", timeout=5.0
+                )
+                health_response.raise_for_status()
+                logger.info(
+                    f"Model service health check successful for model {model_id}"
+                )
+            except httpx.RequestError as exc:
+                logger.error(
+                    f"Model service health check failed for model {model_id}: {exc}"
+                )
+                # Optionally, can add an update model status to 'training_failed_health_check'
+                # For now, the training proceeds and potentially fails at the training request. Need Team Lead Input
+                raise HTTPException(
+                    status_code=503, detail=f"Model service is unavailable: {exc}"
+                )
 
-        # TODO: Implement actual model training
-        # This would involve making a request to the Model Backend service
-        # to train the model with the specified algorithm and features
+            # Prepare data for the model training service
+            training_payload = {
+                "parameters": {
+                    "algorithm": model_data.algorithm,
+                    "features": model_data.features,
+                    "model_id": model_id,  # Pass model_id for the model service to use
+                }
+            }
 
-        # For now, simulate training with a placeholder
-        await asyncio.sleep(5)
+            logger.info(
+                f"Sending training request to model service for model {model_id} with payload: {training_payload}"
+            )
 
-        # Update model with accuracy
-        async with async_session() as session:
-            stmt = select(db.Model).where(db.Model.uuid == model_id)
-            result = await session.scalars(stmt)
-            model = result.one()
-            model.accuracy = 0.85  # Placeholder accuracy
-            await session.commit()
+            # Call the model service to train the model
+            response = await client.post(
+                f"{MODEL_SERVICE_URL}/training/", json=training_payload, timeout=300.0
+            )  # 5 min timeout for training
+            response.raise_for_status()
 
-        logger.info(f"Training completed for model {model_id}")
+            training_result = response.json()
+            # Model service currently returns {"status": "..."}.
+            # Changed to check if Accuracy is added later on, Need Team Lead Input
+            accuracy = training_result.get("accuracy")
+            model_service_status = training_result.get("status", "unknown")
+            logger.info(
+                f"Model service response for model {model_id}: status='{model_service_status}', accuracy='{accuracy}'"
+            )
+
+            if accuracy is not None:
+                # Update model with accuracy from the model service
+                async with async_session() as session:
+                    stmt = select(db.Model).where(db.Model.uuid == model_id)
+                    result = await session.scalars(stmt)
+                    model_db_instance = result.one_or_none()
+                    if model_db_instance:
+                        model_db_instance.accuracy = accuracy
+                        await session.commit()
+                        logger.info(
+                            f"Training completed and accuracy updated for model {model_id}"
+                        )
+                    else:
+                        logger.error(
+                            f"Model {model_id} not found in DB after training attempt."
+                        )
+            else:
+                logger.warning(
+                    f"Model service did not return accuracy for model {model_id}. Response: {training_result}"
+                )
+
+    except httpx.HTTPStatusError as exc:
+        logger.error(
+            f"HTTP error during model training request for {model_id}: {exc.response.status_code} - {exc.response.text}"
+        )
+        # TODO: Update model status to 'training_failed' in DB
+        # For now, just error logged
+    except httpx.RequestError as exc:
+        logger.error(f"Request error during model training for {model_id}: {exc}")
+        # TODO: Update model status to 'training_failed' in DB
     except Exception as e:
-        logger.error(f"Error training model {model_id}: {str(e)}")
-        # Update model with error status if needed
-        # TODO: Implement error handling for failed training
+        logger.error(f"Unexpected error training model {model_id}: {str(e)}")
+        # TODO: Update model status to 'training_failed' in DB

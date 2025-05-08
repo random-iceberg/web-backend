@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 @router.post("/", response_model=PredictionResult, summary="Predict Titanic Survival")
 async def predict_passenger_survival(data: PassengerData) -> PredictionResult:
     """
