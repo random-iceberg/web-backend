@@ -27,9 +27,6 @@ async def get_all_models(
     Returns:
         List[ModelResponse]: List of all model objects
     """
-    # TODO: Replace with actual database query
-    # SELECT * FROM models ORDER BY created_at DESC
-
     async with async_session() as session:
         stmt = (
             select(db.Model)
@@ -75,9 +72,6 @@ async def start_model_training(
     job_id = f"train_{model_id}"
 
     # Store initial model information in database
-    # TODO: Replace with actual database insert
-    # INSERT INTO models (id, algorithm, name, features, created_at)
-    # VALUES (model_id, model_data.algorithm, model_data.name, model_data.features, NOW())
     async with async_session() as session:
         stmt = select(db.Feature).where(db.Feature.name.in_(model_data.features))
         features = await session.scalars(stmt)
@@ -178,7 +172,7 @@ async def _train_model_task(
                 "parameters": {
                     "algorithm": model_data.algorithm,
                     "features": model_data.features,
-                    "model_id": model_id,  # Pass model_id for the model service to use
+                    "model_id": model_id,
                 }
             }
 
