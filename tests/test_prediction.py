@@ -22,3 +22,17 @@ def test_predict_success():
     data = response.json()
     assert "survived" in data, "Response missing 'survived' field"
     assert "probability" in data, "Response missing 'probability' field"
+
+async def test_get_prediction_history():
+    response = await client.get("/predict/history")
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) <= 10
+    
+    if len(data) > 0:
+        history_item = data[0]
+        assert "timestamp" in history_item
+        assert "input" in history_item
+        assert "output" in history_item
