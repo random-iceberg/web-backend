@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post("/", response_model=PredictionResult, summary="Predict Titanic Survival")
-async def predict_passenger_survival(data: PassengerData) -> PredictionResult:
+async def predict_passenger_survival(data: PassengerData, request: Request) -> PredictionResult:
     """
     Endpoint to predict the survival of a Titanic passenger.
 
@@ -29,11 +29,12 @@ async def predict_passenger_survival(data: PassengerData) -> PredictionResult:
         HTTPException 500: Internal server error.
     """
     try:
-        # Delegate to service layer
-        result: PredictionResult = predict_survival(data)
-
+        # Get database session from request state
+        db = request.state.async_session
+        # Pass session to service
+        result = await predict_survival(data, db)
         return result
-
+    
     except ValueError as ve:
         # Service layer threw validation error
         logger.warning("Validation error during prediction", exc_info=ve)

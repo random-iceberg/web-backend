@@ -1,27 +1,36 @@
 import httpx
 from models.schemas import PassengerData, PredictionResult
 import logging
+from sqlalchemy.ext.asyncio import AsyncSession
+from db.schemas import Prediction
 
 #TODO: remove httpx, do over the network container yapping #
 logger = logging.getLogger(__name__)
 MODEL_SERVICE_API = ""
 
-def predict_survival(data: PassengerData) -> PredictionResult:
+async def predict_survival(data: PassengerData, db_session: AsyncSession) -> PredictionResult:
     """
-    Main entry for predicting survival:
+    Main entry for predicting survival and storing the result:
       1. (Optionally) validate any domain-specific rules.
       2. Send payload to the external Model API.
-      3. Format and return the prediction result.
+      3. Store prediction in database.
+      4. Format and return the prediction result.
     """
     # Domain-specific validation (beyond Pydantic)
     validation = _validate_passenger_data(data)
 
     if validation is None:
-    # Perform inference
-        score: float = _inference_model_call(data)
+        # Get prediction
+        result = _format_prediction_result(_inference_model_call(data))
         
-        # Format into PredictionResult
-        result: PredictionResult = _format_prediction_result(score)
+        # Store prediction in database
+        new_prediction = Prediction(
+            input_data=data.model_dump(),
+            result=result.model_dump()
+        )
+        db_session.add(new_prediction)
+        await db_session.commit()
+        
         return result
     else:
         return validation
