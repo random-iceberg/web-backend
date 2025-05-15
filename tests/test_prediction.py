@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 from main import app
+import pytest
+from httpx import AsyncClient
 
 client = TestClient(app)
 
@@ -23,16 +25,18 @@ def test_predict_success():
     assert "survived" in data, "Response missing 'survived' field"
     assert "probability" in data, "Response missing 'probability' field"
 
+@pytest.mark.asyncio
 async def test_get_prediction_history():
-    response = await client.get("/predict/history")
-    assert response.status_code == 200
-    
-    data = response.json()
-    assert isinstance(data, list)
-    assert len(data) <= 10
-    
-    if len(data) > 0:
-        history_item = data[0]
-        assert "timestamp" in history_item
-        assert "input" in history_item
-        assert "output" in history_item
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get("/predict/history")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) <= 10
+
+        if len(data) > 0:
+            history_item = data[0]
+            assert "timestamp" in history_item
+            assert "input" in history_item
+            assert "output" in history_item
