@@ -56,10 +56,7 @@ class PredictionHistory(BaseModel):
 
 @router.get("/history", 
     response_model=List[PredictionHistory],
-    summary="Get Recent Predictions",
-    # Add caching for 60 seconds
-    response_class=Response,
-    headers={"Cache-Control": "max-age=60"})
+    summary="Get Recent Predictions")
 async def get_prediction_history(request: Request):
     """
     Retrieves the 10 most recent predictions for the authenticated user.
