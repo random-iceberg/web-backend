@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
 from typing import List
@@ -55,7 +55,10 @@ class PredictionHistory(BaseModel):
 
 @router.get("/history", 
     response_model=List[PredictionHistory],
-    summary="Get Recent Predictions")
+    summary="Get Recent Predictions",
+    # Add caching for 60 seconds
+    response_class=Response,
+    headers={"Cache-Control": "max-age=60"})
 async def get_prediction_history(request: Request):
     """
     Retrieves the 10 most recent predictions for the authenticated user.
@@ -82,8 +85,8 @@ async def get_prediction_history(request: Request):
             return history
 
     except SQLAlchemyError as e:
-        logger.error("Database error: %s", str(e))
+        logger.error("Database error fetching history: %s", str(e), exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail="Database error occurred while fetching history"
+            detail=f"Database error occurred while fetching history: {str(e)}"
         )
