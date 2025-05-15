@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, Response
+from sqlalchemy.exc import SQLAlchemyError
 from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
 from typing import List
@@ -68,21 +69,20 @@ async def get_prediction_history(request: Request):
                                input parameters and prediction results.
     """
     try:
-        db = request.state.async_session
-        async with db() as session:
-            query = select(Prediction).order_by(desc(Prediction.created_at)).limit(10)
-            result = await session.execute(query)
-            predictions = result.scalars().all()
+        session = request.state.async_session
+        query = select(Prediction).order_by(desc(Prediction.created_at)).limit(10)
+        result = await session.execute(query)
+        predictions = result.scalars().all()
 
-            history = [
-                PredictionHistory(
-                    timestamp=p.created_at,
-                    input=p.input_data,
-                    output=p.result
-                )
-                for p in predictions
-            ]
-            return history
+        history = [
+            PredictionHistory(
+                timestamp=p.created_at,
+                input=p.input_data,
+                output=p.result
+            )
+            for p in predictions
+        ]
+        return history
 
     except SQLAlchemyError as e:
         logger.error("Database error fetching history: %s", str(e), exc_info=True)
