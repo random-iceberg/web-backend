@@ -5,6 +5,8 @@ from typing import List
 from datetime import datetime
 import logging
 from pydantic import BaseModel
+from sqlalchemy import select, desc
+from db.schemas import Prediction
 
 
 # Configure module-level logger
@@ -63,35 +65,25 @@ async def get_prediction_history(request: Request):
                                input parameters and prediction results.
     """
     try:
-        # Get database session from request state 
         db = request.state.async_session
+        async with db() as session:
+            query = select(Prediction).order_by(desc(Prediction.created_at)).limit(10)
+            result = await session.execute(query)
+            predictions = result.scalars().all()
 
-        # Query last 10 predictions ordered by timestamp
-        query = """
-            SELECT timestamp, input_data, result 
-            FROM predictions
-            ORDER BY timestamp DESC 
-            LIMIT 10
-        """
-        
-        result = await db.execute(query)
-        predictions = await result.fetchall()
+            history = [
+                PredictionHistory(
+                    timestamp=p.created_at,
+                    input=p.input_data,
+                    output=p.result
+                )
+                for p in predictions
+            ]
+            return history
 
-        # Transform to response model
-        history = [
-            PredictionHistory(
-                timestamp=row.timestamp,
-                input=row.input_data,
-                output=row.result
-            )
-            for row in predictions
-        ]
-
-        return history
-
-    except Exception as exc:
-        logger.error("Error retrieving prediction history: %s", exc, exc_info=True)
+    except SQLAlchemyError as e:
+        logger.error("Database error: %s", str(e))
         raise HTTPException(
             status_code=500,
-            detail="Failed to retrieve prediction history"
+            detail="Database error occurred while fetching history"
         )
