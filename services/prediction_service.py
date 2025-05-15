@@ -20,8 +20,11 @@ async def predict_survival(data: PassengerData, db_session: AsyncSession) -> Pre
     validation = _validate_passenger_data(data)
 
     if validation is None:
-        # Get prediction
-        result = _format_prediction_result(_inference_model_call(data))
+        # Perform inference
+        score: float = _inference_model_call(data)
+        
+        # Format into PredictionResult
+        result: PredictionResult = _format_prediction_result(score)
         
         # Store prediction in database
         new_prediction = Prediction(

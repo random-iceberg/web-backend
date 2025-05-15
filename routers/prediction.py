@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from sqlalchemy.exc import SQLAlchemyError
 from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from datetime import datetime
 import logging
@@ -32,11 +33,10 @@ async def predict_passenger_survival(data: PassengerData, request: Request) -> P
         HTTPException 500: Internal server error.
     """
     try:
-        # Get database session from request state
-        db = request.state.async_session
-        # Pass session to service
-        result = await predict_survival(data, db)
-        return result
+        async_session = request.state.async_session  # This is a factory
+        async with async_session() as db_session:    # Create a session instance
+            result = await predict_survival(data, db_session)
+            return result
     
     except ValueError as ve:
         # Service layer threw validation error
@@ -66,20 +66,21 @@ async def get_prediction_history(request: Request):
                                input parameters and prediction results.
     """
     try:
-        session = request.state.async_session
-        query = select(Prediction).order_by(desc(Prediction.created_at)).limit(10)
-        result = await session.execute(query)
-        predictions = result.scalars().all()
+        async_session = request.state.async_session
+        async with async_session() as session:
+            query = select(Prediction).order_by(desc(Prediction.created_at)).limit(10)
+            result = await session.execute(query)
+            predictions = result.scalars().all()
 
-        history = [
-            PredictionHistory(
-                timestamp=p.created_at,
-                input=p.input_data,
-                output=p.result
-            )
-            for p in predictions
-        ]
-        return history
+            history = [
+                PredictionHistory(
+                    timestamp=p.created_at,
+                    input=p.input_data,
+                    output=p.result
+                )
+                for p in predictions
+            ]
+            return history
 
     except SQLAlchemyError as e:
         logger.error("Database error fetching history: %s", str(e), exc_info=True)
