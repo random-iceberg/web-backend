@@ -1,19 +1,20 @@
-import uuid
 import logging
 import os
+import uuid
 
-import asyncio
 import httpx
 from fastapi import BackgroundTasks, HTTPException
-from sqlalchemy import select
-from sqlalchemy import desc
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy import desc, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
-from models.schemas import ModelCreate, ModelResponse, TrainingResponse, DeleteResponse
 from db import schemas as db
-
+from models.schemas import (
+    DeleteResponse,
+    ModelCreate,
+    ModelResponse,
+    TrainingResponse,
+)
 
 logger = logging.getLogger(__name__)
 

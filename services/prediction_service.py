@@ -1,6 +1,6 @@
-import httpx
-from models.schemas import PassengerData, PredictionResult
 import logging
+
+from models.schemas import PassengerData, PredictionResult
 
 # TODO: remove httpx, do over the network container yapping #
 logger = logging.getLogger(__name__)

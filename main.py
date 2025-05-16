@@ -1,16 +1,16 @@
-from contextlib import asynccontextmanager
 import logging
 import time
+from contextlib import asynccontextmanager
 from os import environ
 
+from asyncpg.exceptions import InvalidPasswordError
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import create_async_engine
-from asyncpg.exceptions import InvalidPasswordError
 
 import db
-from routers import prediction, models
+from routers import models, prediction
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -109,8 +109,6 @@ def create_app() -> FastAPI:
         return response
 
     # include routers (prediction & models)
-    from routers import prediction, models
-
     app.include_router(prediction.router, prefix="/predict", tags=["Prediction"])
     app.include_router(models.router, prefix="/models", tags=["Model Management"])
 

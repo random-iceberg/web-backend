@@ -1,2 +1,2 @@
-from . import helpers
-from . import schemas
+from . import helpers as helpers
+from . import schemas as schemas

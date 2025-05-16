@@ -1,14 +1,10 @@
 from datetime import datetime
 from typing import override
 
-from sqlalchemy import ForeignKey
-from sqlalchemy import Column
-from sqlalchemy import Table
-from sqlalchemy import func
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import Column, ForeignKey, Table, func
+from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.orm import Mapped as M
 from sqlalchemy.orm import mapped_column as column
-from sqlalchemy.orm import relationship
 
 
 class Base(DeclarativeBase):

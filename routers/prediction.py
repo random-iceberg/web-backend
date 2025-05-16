@@ -1,7 +1,9 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
+
 from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
-import logging
 
 # Configure module-level logger
 logger = logging.getLogger(__name__)
