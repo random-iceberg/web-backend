@@ -1,0 +1,26 @@
+[project]
+name = "web-backend"
+version = "0.0.1"
+requires-python = ">=3.10"
+dependencies = ["fastapi", "uvicorn", "httpx", "sqlalchemy", "asyncpg"] # TODO: pin versions
+
+[tool.setuptools]
+packages = []
+
+[project.optional-dependencies]
+dev = ["ruff", "pytest", "testcontainers[postgres]"]
+
+[tool.ruff.lint]
+# Enable the isort rules.
+extend-select = ["I"]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/test_*.py" = ["F811"]
+"tests/**/*_test.py" = ["F811"]
+
+[tool.basedpyright]
+reportAny = false
+reportExplicitAny = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownLambdaType = false
