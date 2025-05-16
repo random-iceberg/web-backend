@@ -1,18 +1,19 @@
-from fastapi.testclient import TestClient
-from main import app
 import uuid
 
-client = TestClient(app)
+from fastapi.testclient import TestClient
+
+from .client import client as client
+from .client import postgres_container as postgres_container
 
 
-def test_list_models():
+def test_list_models(client: TestClient):
     """Test GET /models/ endpoint"""
     response = client.get("/models/")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
-def test_train_model_success():
+def test_train_model_success(client: TestClient):
     """Test POST /models/train endpoint with valid data"""
     payload = {
         "algorithm": "Random Forest",
@@ -26,7 +27,7 @@ def test_train_model_success():
     assert data["status"] == "training_started"
 
 
-def test_train_model_invalid():
+def test_train_model_invalid(client: TestClient):
     """Test POST /models/train endpoint with invalid data"""
     payload = {
         "algorithm": "Random Forest",
@@ -37,7 +38,7 @@ def test_train_model_invalid():
     assert response.status_code == 400
 
 
-def test_delete_model():
+def test_delete_model(client: TestClient):
     """Test DELETE /models/{id} endpoint"""
     # First create a model to delete
     payload = {
@@ -58,7 +59,7 @@ def test_delete_model():
     assert delete_response.json()["status"] == "success"
 
 
-def test_delete_nonexistent_model():
+def test_delete_nonexistent_model(client: TestClient):
     """Test DELETE /models/{id} with non-existent ID"""
     fake_id = str(uuid.uuid4())
     response = client.delete(f"/models/{fake_id}")

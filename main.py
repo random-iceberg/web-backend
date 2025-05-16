@@ -22,6 +22,7 @@ async def lifespan(app: FastAPI):
     database = environ.get("DB_DATABASE")
     address = environ.get("DB_ADDRESS")
     password = environ.get("DB_PASSWORD")
+    port = environ.get("DB_PORT")
 
     if not user or not database or not address:
         msg = (
@@ -35,6 +36,9 @@ async def lifespan(app: FastAPI):
         msg = f"No DB_PASSWORD provided for user '{user}'"
         logger.error(msg)
         raise RuntimeError(msg)
+
+    if port:
+        address = f"{address}:{port}"
 
     url = f"postgresql+asyncpg://{user}:{password}@{address}/{database}"
     try:
