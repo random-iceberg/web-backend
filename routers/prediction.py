@@ -10,11 +10,11 @@ from pydantic import BaseModel
 from sqlalchemy import select, desc
 from db.schemas import Prediction
 
-
 # Configure module-level logger
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
 
 @router.post("/", response_model=PredictionResult, summary="Predict Titanic Survival")
 async def predict_passenger_survival(data: PassengerData, request: Request) -> PredictionResult:
@@ -37,7 +37,7 @@ async def predict_passenger_survival(data: PassengerData, request: Request) -> P
         async with async_session() as db_session:    # Create a session instance
             result = await predict_survival(data, db_session)
             return result
-    
+
     except ValueError as ve:
         # Service layer threw validation error
         logger.warning("Validation error during prediction", exc_info=ve)
@@ -54,9 +54,12 @@ class PredictionHistory(BaseModel):
     input: PassengerData
     output: PredictionResult
 
-@router.get("/history", 
+
+@router.get(
+    "/history",
     response_model=List[PredictionHistory],
-    summary="Get Recent Predictions")
+    summary="Get Recent Predictions",
+)
 async def get_prediction_history(request: Request):
     """
     Retrieves the 10 most recent predictions for the authenticated user.
