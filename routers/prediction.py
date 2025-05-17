@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 @router.post("/", response_model=PredictionResult, summary="Predict Titanic Survival")
 async def predict_passenger_survival(data: PassengerData) -> PredictionResult:
     """
@@ -26,7 +27,7 @@ async def predict_passenger_survival(data: PassengerData) -> PredictionResult:
     """
     try:
         # Delegate to service layer
-        result: PredictionResult = predict_survival(data)
+        result: PredictionResult = await predict_survival(data)
 
         return result
 

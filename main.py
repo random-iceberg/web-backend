@@ -125,17 +125,5 @@ def create_app() -> FastAPI:
     return app
 
 
-# TODO: this function is not even invoked
-def include_routers(app: FastAPI) -> None:
-    """
-    Include API routers.
-
-    TODO:
-      - Include additional routers for authentication, administration, health checks, etc.
-    """
-    app.include_router(prediction.router, prefix="/predict", tags=["Prediction"])
-    app.include_router(models.router, prefix="/models", tags=["Model Management"])
-
-
 # Instantiate the application
 app = create_app()

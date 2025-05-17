@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+import logging # Added import
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
 from typing import List
 from models.schemas import ModelCreate, ModelResponse, TrainingResponse, DeleteResponse
 from services.model_service import get_all_models, start_model_training, delete_model
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -20,7 +21,7 @@ async def list_models(request: Request):
         models = await get_all_models(request.state.async_session)
         return models
     except Exception as exc:
-        # TODO: Add proper logging
+        logger.error(f"Failed to retrieve models: {exc}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Failed to retrieve models: {str(exc)}"
         )
