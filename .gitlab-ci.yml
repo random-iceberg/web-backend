@@ -1,12 +1,13 @@
 # https://docs.gitlab.com/ci/yaml
 
 stages: # List of stages for jobs, and their order of execution
-  - default
+  - test
+  - build
 
 docker-build:
   # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Docker.gitlab-ci.yml
   image: docker:cli
-  stage: default
+  stage: build
   services:
     - docker:dind
   before_script:
@@ -33,7 +34,7 @@ docker-build:
 
 checks:
   image: ghcr.io/astral-sh/uv:0.7.4-python3.13-bookworm-slim
-  stage: default
+  stage: test
   script:
     - uv sync --no-cache --extra dev
     - uv run pytest
