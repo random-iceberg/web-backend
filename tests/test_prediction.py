@@ -5,7 +5,7 @@ from .client import postgres_container as postgres_container
 
 
 # Test
-def test_predict_success(client: TestClient):
+async def test_predict_success(client: TestClient):
     payload = {
         "passengerClass": 3,
         "sex": "male",
@@ -26,7 +26,7 @@ def test_predict_success(client: TestClient):
     assert "probability" in data, "Response missing 'probability' field"
 
 
-def test_get_prediction_history_empty(client: TestClient):
+async def test_get_prediction_history_empty(client: TestClient):
     response = client.get("/predict/history")
     assert response.status_code == 200
 
@@ -36,7 +36,7 @@ def test_get_prediction_history_empty(client: TestClient):
 
 
 # TODO: add separate test: call /predict a few times, then check /predict/history
-def test_get_prediction_history(client: TestClient):
+async def test_get_prediction_history(client: TestClient):
     pass
 
     # if len(data) > 0:
