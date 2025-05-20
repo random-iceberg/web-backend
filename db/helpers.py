@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from asyncpg.exceptions import CannotConnectNowError
 
-from .schemas import Base, Feature
+from .schemas import Base, Feature, Prediction
 
 
 async def init_db(engine: AsyncEngine):
