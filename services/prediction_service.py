@@ -1,5 +1,3 @@
-# src/services/prediction_service.py
-
 import httpx
 from models.schemas import PassengerData, PredictionResult
 import logging
