@@ -1,15 +1,18 @@
-import httpx
-from models.schemas import PassengerData, PredictionResult
 import logging
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from db.schemas import Prediction
+from models.schemas import PassengerData, PredictionResult
 
 # TODO: remove httpx, do over the network container yapping #
 logger = logging.getLogger(__name__)
 MODEL_SERVICE_API = ""
 
 
-async def predict_survival(data: PassengerData, db_session: AsyncSession) -> PredictionResult:
+async def predict_survival(
+    data: PassengerData, db_session: AsyncSession
+) -> PredictionResult:
     """
     Main entry for predicting survival and storing the result:
       1. (Optionally) validate any domain-specific rules.
@@ -28,8 +31,7 @@ async def predict_survival(data: PassengerData, db_session: AsyncSession) -> Pre
 
     # Store prediction in database
     new_prediction = Prediction(
-        input_data=data.model_dump(),
-        result=result.model_dump()
+        input_data=data.model_dump(), result=result.model_dump()
     )
     db_session.add(new_prediction)
     await db_session.commit()

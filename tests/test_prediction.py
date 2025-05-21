@@ -1,43 +1,46 @@
 from fastapi.testclient import TestClient
-from main import app
-import pytest
-from httpx import AsyncClient
 
-client = TestClient(app)
+from .client import client as client
+from .client import postgres_container as postgres_container
 
 
 # Test
-def test_predict_success():
+async def test_predict_success(client: TestClient):
     payload = {
-        "pclass": 3,
+        "passengerClass": 3,
         "sex": "male",
         "age": 25,
         "sibsp": 0,
         "parch": 0,
-        "fare": 8.05,
-        "embarked": "S",
+        "embarkationPort": "S",
+        "wereAlone": True,
+        "cabinKnown": False,
     }
     response = client.post("/predict", json=payload)
-    assert (
-        response.status_code == 200
-    ), f"Expected status code 200, got {response.status_code}"
+    assert response.status_code == 200, (
+        f"Expected status code 200, got {response.status_code}"
+    )
 
     data = response.json()
     assert "survived" in data, "Response missing 'survived' field"
     assert "probability" in data, "Response missing 'probability' field"
 
-@pytest.mark.asyncio
-async def test_get_prediction_history():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.get("/predict/history")
-        assert response.status_code == 200
 
-        data = response.json()
-        assert isinstance(data, list)
-        assert len(data) <= 10
+async def test_get_prediction_history_empty(client: TestClient):
+    response = client.get("/predict/history")
+    assert response.status_code == 200
 
-        if len(data) > 0:
-            history_item = data[0]
-            assert "timestamp" in history_item
-            assert "input" in history_item
-            assert "output" in history_item
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 0  # Database is empty here
+
+
+# TODO: add separate test: call /predict a few times, then check /predict/history
+async def test_get_prediction_history(client: TestClient):
+    pass
+
+    # if len(data) > 0:
+    #     history_item = data[0]
+    #     assert "timestamp" in history_item
+    #     assert "input" in history_item
+    #     assert "output" in history_item

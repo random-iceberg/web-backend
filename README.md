@@ -71,7 +71,7 @@ Follow these steps to set up your development environment:
 
 6. **Install Dependencies:**
    ```bash
-   pip install -r requirements.txt
+   pip install -e '.[dev]'
    ```
 
 7. **Run the Application Locally:**
