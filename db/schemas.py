@@ -1,15 +1,10 @@
 from datetime import datetime
 from typing import override
 
-from sqlalchemy import ForeignKey
-from sqlalchemy import Column
-from sqlalchemy import Table
-from sqlalchemy import func
-from sqlalchemy import JSON
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import JSON, Column, ForeignKey, Table, func
+from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.orm import Mapped as M
 from sqlalchemy.orm import mapped_column as column
-from sqlalchemy.orm import relationship
 
 
 class Base(DeclarativeBase):
@@ -62,14 +57,15 @@ class Feature(Base):
 
 class Prediction(Base):
     """Stores prediction history with input data and results"""
+
     __tablename__: str = "prediction"
 
     id: M[int] = column(primary_key=True)
     created_at: M[datetime] = column(server_default=func.now())
     input_data: M[dict] = column(JSON)  # Store PassengerData
-    result: M[dict] = column(JSON)      # Store PredictionResult
+    result: M[dict] = column(JSON)  # Store PredictionResult
     # TODO: Add user_id for authentication later
-    
+
     @override
     def __repr__(self) -> str:
         return f"Prediction(id={self.id!r}, created_at={self.created_at!r})"

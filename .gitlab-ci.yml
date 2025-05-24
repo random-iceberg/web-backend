@@ -1,49 +1,42 @@
-# This file is a template, and might need editing before it works on your project.
-# This is a sample GitLab CI/CD configuration file that should run without any modifications.
-# It demonstrates a basic 3 stage CI/CD pipeline. Instead of real tests or scripts,
-# it uses echo commands to simulate the pipeline execution.
-#
-# A pipeline is composed of independent jobs that run scripts, grouped into stages.
-# Stages run in sequential order, but jobs within stages run in parallel.
-#
-# For more information, see: https://docs.gitlab.com/ee/ci/yaml/#stages
-#
-# You can copy and paste this template into a new `.gitlab-ci.yml` file.
-# You should not add this template to an existing `.gitlab-ci.yml` file by using the `include:` keyword.
-#
-# To contribute improvements to CI/CD templates, please follow the Development guide at:
-# https://docs.gitlab.com/development/cicd/templates/
-# This specific template is located at:
-# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
+# https://docs.gitlab.com/ci/yaml
 
-stages:          # List of stages for jobs, and their order of execution
-  - build
+stages: # List of stages for jobs, and their order of execution
   - test
-  - deploy
+  - build
 
-build-job:       # This job runs in the build stage, which runs first.
+docker-build:
+  # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Docker.gitlab-ci.yml
+  image: docker:cli
   stage: build
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  variables:
+        DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
   script:
-    - echo "Compiling the code..."
-    - echo "Compile complete."
+    # Try to build the image
+    - docker build --pull --tag "$DOCKER_IMAGE_NAME" --target prod .
+    # But only push it in the registry when it is a long-term branch
+    - if [[ $PUSH == true ]]; then docker push "$DOCKER_IMAGE_NAME"; fi
 
-unit-test-job:   # This job runs in the test stage.
-  stage: test    # It only starts when the job in the build stage completes successfully.
-  script:
-    - echo "Running unit tests... This will take about 60 seconds."
-    - sleep 60
-    - echo "Code coverage is 90%"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:latest
+        PUSH: "true"
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "fake-dev"
+      variables:
+        PUSH: "true"
+    - if: $CI_COMMIT_BRANCH
+      variables:
+        PUSH: "false"
 
-lint-test-job:   # This job also runs in the test stage.
-  stage: test    # It can run at the same time as unit-test-job (in parallel).
+checks:
+  image: ghcr.io/astral-sh/uv:0.7.4-python3.13-bookworm-slim
+  stage: test
   script:
-    - echo "Linting code... This will take about 10 seconds."
-    - sleep 10
-    - echo "No lint issues found."
-
-deploy-job:      # This job runs in the deploy stage.
-  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
-  environment: production
-  script:
-    - echo "Deploying application..."
-    - echo "Application successfully deployed."
+    - uv sync --no-cache --extra dev
+    - uv run pytest
+    - uv run ruff check
+    - uv run ruff format --check

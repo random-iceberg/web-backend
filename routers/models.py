@@ -1,14 +1,20 @@
-import logging # Added import
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
-from typing import List
-from models.schemas import ModelCreate, ModelResponse, TrainingResponse, DeleteResponse
-from services.model_service import get_all_models, start_model_training, delete_model
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+
+from models.schemas import (
+    DeleteResponse,
+    ModelCreate,
+    ModelResponse,
+    TrainingResponse,
+)
+from services.model_service import delete_model, get_all_models, start_model_training
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/", response_model=List[ModelResponse], summary="List all trained models")
+@router.get("/", response_model=list[ModelResponse], summary="List all trained models")
 async def list_models(request: Request):
     """
     Retrieves a list of all available trained models.
@@ -42,7 +48,6 @@ async def train_model(
         TrainingResponse: Object containing job_id, status, and message
     """
     try:
-
         response = await start_model_training(
             request.state.async_session, model_data, background_tasks
         )
@@ -50,7 +55,6 @@ async def train_model(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
-
         raise HTTPException(
             status_code=500, detail=f"Failed to start model training: {str(exc)}"
         )
@@ -73,7 +77,6 @@ async def remove_model(model_id: str, request: Request):
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
-
         raise HTTPException(
             status_code=500, detail=f"Failed to delete model: {str(exc)}"
         )

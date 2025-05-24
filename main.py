@@ -1,16 +1,16 @@
-from contextlib import asynccontextmanager
 import logging
 import time
+from contextlib import asynccontextmanager
 from os import environ
 
+from asyncpg.exceptions import InvalidPasswordError
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import create_async_engine
-from asyncpg.exceptions import InvalidPasswordError
 
 import db
-from routers import prediction, models
+from routers import auth, models, prediction
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ async def lifespan(app: FastAPI):
     database = environ.get("DB_DATABASE")
     address = environ.get("DB_ADDRESS")
     password = environ.get("DB_PASSWORD")
+    port = environ.get("DB_PORT")
 
     if not user or not database or not address:
         msg = (
@@ -35,6 +36,9 @@ async def lifespan(app: FastAPI):
         msg = f"No DB_PASSWORD provided for user '{user}'"
         logger.error(msg)
         raise RuntimeError(msg)
+
+    if port:
+        address = f"{address}:{port}"
 
     url = f"postgresql+asyncpg://{user}:{password}@{address}/{database}"
     try:
@@ -105,8 +109,6 @@ def create_app() -> FastAPI:
         return response
 
     # include routers (prediction & models)
-    from routers import prediction, models, auth
-
     app.include_router(prediction.router, prefix="/predict", tags=["Prediction"])
     app.include_router(models.router, prefix="/models", tags=["Model Management"])
     app.include_router(auth.router, prefix="/auth", tags=["User Authentication"])

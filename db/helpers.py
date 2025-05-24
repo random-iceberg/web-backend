@@ -1,10 +1,8 @@
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncEngine
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.asyncio import async_sessionmaker
 from asyncpg.exceptions import CannotConnectNowError
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from .schemas import Base, Feature, Prediction
+from .schemas import Base, Feature
 
 
 async def init_db(engine: AsyncEngine):
