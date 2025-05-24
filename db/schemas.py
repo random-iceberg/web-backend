@@ -73,3 +73,15 @@ class Prediction(Base):
     @override
     def __repr__(self) -> str:
         return f"Prediction(id={self.id!r}, created_at={self.created_at!r})"
+    
+
+class User(Base):
+    """Stores user information"""
+    __tablename__ = "users"
+
+    id: M[int] = column(primary_key=True, autoincrement=True)
+    email: M[str] = column(unique=True, nullable=False)
+    hashed_password: M[str] = column(nullable=False)
+
+    def __repr__(self) -> str:
+        return f"User(id={self.id!r}, email={self.email!r})"

@@ -105,10 +105,11 @@ def create_app() -> FastAPI:
         return response
 
     # include routers (prediction & models)
-    from routers import prediction, models
+    from routers import prediction, models, auth
 
     app.include_router(prediction.router, prefix="/predict", tags=["Prediction"])
     app.include_router(models.router, prefix="/models", tags=["Model Management"])
+    app.include_router(auth.router, prefix="/auth", tags=["User Authentication"])
 
     # Health check endpoint
     @app.get("/health", tags=["Health"])
