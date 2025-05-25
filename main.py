@@ -37,12 +37,12 @@ async def lifespan(app: FastAPI):
         msg = f"No DB_PASSWORD provided for user '{user}'"
         logger.error(msg)
         raise RuntimeError(msg)
-    
+
     if not jwt_key:
         msg = "No JWT_SECRET_KEY provided in environment variables."
         logger.error(msg)
         raise RuntimeError(msg)
-    
+
     if port:
         address = f"{address}:{port}"
 

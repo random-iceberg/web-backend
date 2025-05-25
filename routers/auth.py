@@ -1,11 +1,12 @@
-import jwt
 import logging
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
-from services.user_service import create_user, authenticate_user
-from typing import Dict
-from db.schemas import User
 from datetime import datetime, timedelta, timezone
+
+import jwt
+from fastapi import APIRouter, Request
+from pydantic import BaseModel
+
+from db.schemas import User
+from services.user_service import authenticate_user, create_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -39,7 +40,7 @@ async def signup(data: SignupRequest, request: Request) -> SignupResponse:
 
     Args:
         data (SignupRequest): Email and password fields
-        request (Request): HTTP request object containing async_session 
+        request (Request): HTTP request object containing async_session
 
     Returns:
         dict: Contains user ID and email of the newly registered user
@@ -47,12 +48,13 @@ async def signup(data: SignupRequest, request: Request) -> SignupResponse:
     async with request.state.async_session() as session:
         user: User = await create_user(session, data.email, data.password)
         return SignupResponse(id=user.id, email=user.email)
-    
+
+
 @router.post("/login", summary="Authenticate an existing user")
 async def login(data: LoginRequest, request: Request) -> LoginResponse:
     """
     Verify user credentials and return a JWT token.
- 
+
     Args:
         data (LoginRequest): Email and password
         request (Request): HTTP request object containing async_session
@@ -60,12 +62,14 @@ async def login(data: LoginRequest, request: Request) -> LoginResponse:
     Returns:
         dict: Success message, JWT access token
     """
-    async with request.state.async_session() as session: # TODO: (Question) should the async_session be started here?
+    async with (
+        request.state.async_session() as session
+    ):  # TODO: (Question) should the async_session be started here?
         user: User = await authenticate_user(session, data.email, data.password)
 
         payload = {
             "sub": str(user.id),
-            "exp": datetime.now(timezone.utc) + timedelta(hours=1)
+            "exp": datetime.now(timezone.utc) + timedelta(hours=1),
         }
 
         token = jwt.encode(payload, request.state.jwt_key, algorithm="HS256")

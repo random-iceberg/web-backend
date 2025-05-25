@@ -1,9 +1,11 @@
 import logging
+
 from fastapi import HTTPException
+from passlib.hash import bcrypt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
 from db.schemas import User
-from passlib.hash import bcrypt
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,6 @@ async def create_user(db: AsyncSession, email: str, password: str) -> User:
 
     hashed_pw = bcrypt.hash(password)
     new_user = User(email=email, hashed_password=hashed_pw)
-
 
     db.add(new_user)
     await db.commit()
