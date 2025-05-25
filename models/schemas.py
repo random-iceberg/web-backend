@@ -1,11 +1,12 @@
-from pydantic import BaseModel, Field
-from typing import Literal, List, Optional
 from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class PassengerData(BaseModel):
     """
-     Data model representing input information for a Titanic passenger.
+    Data model representing input information for a Titanic passenger.
     - Define passenger fields (e.g., pclass, age, sex, etc.)"
     """
 
@@ -36,7 +37,7 @@ class ModelBase(BaseModel):
 
     algorithm: str
     name: str
-    features: List[str]
+    features: list[str]
 
 
 class ModelCreate(ModelBase):
@@ -50,7 +51,7 @@ class ModelResponse(ModelBase):
 
     id: str
     created_at: datetime
-    accuracy: Optional[float] = Field(None, description="Model accuracy, if available")
+    accuracy: float | None = Field(None, description="Model accuracy, if available")
 
 
 class TrainingResponse(BaseModel):

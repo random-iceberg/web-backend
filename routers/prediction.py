@@ -1,14 +1,14 @@
-from fastapi import APIRouter, HTTPException, Request, Response
+import logging
+from datetime import datetime
+
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
+from sqlalchemy import desc, select
 from sqlalchemy.exc import SQLAlchemyError
+
+from db.schemas import Prediction
 from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
-from datetime import datetime
-import logging
-from pydantic import BaseModel
-from sqlalchemy import select, desc
-from db.schemas import Prediction
 
 # Configure module-level logger
 logger = logging.getLogger(__name__)
@@ -17,7 +17,9 @@ router = APIRouter()
 
 
 @router.post("/", response_model=PredictionResult, summary="Predict Titanic Survival")
-async def predict_passenger_survival(data: PassengerData, request: Request) -> PredictionResult:
+async def predict_passenger_survival(
+    data: PassengerData, request: Request
+) -> PredictionResult:
     """
     Endpoint to predict the survival of a Titanic passenger.
 
@@ -34,7 +36,7 @@ async def predict_passenger_survival(data: PassengerData, request: Request) -> P
     """
     try:
         async_session = request.state.async_session  # This is a factory
-        async with async_session() as db_session:    # Create a session instance
+        async with async_session() as db_session:  # Create a session instance
             result = await predict_survival(data, db_session)
             return result
 
@@ -57,7 +59,7 @@ class PredictionHistory(BaseModel):
 
 @router.get(
     "/history",
-    response_model=List[PredictionHistory],
+    response_model=list[PredictionHistory],
     summary="Get Recent Predictions",
 )
 async def get_prediction_history(request: Request):
@@ -77,9 +79,7 @@ async def get_prediction_history(request: Request):
 
             history = [
                 PredictionHistory(
-                    timestamp=p.created_at,
-                    input=p.input_data,
-                    output=p.result
+                    timestamp=p.created_at, input=p.input_data, output=p.result
                 )
                 for p in predictions
             ]
@@ -89,5 +89,5 @@ async def get_prediction_history(request: Request):
         logger.error("Database error fetching history: %s", str(e), exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Database error occurred while fetching history: {str(e)}"
+            detail=f"Database error occurred while fetching history: {str(e)}",
         )
