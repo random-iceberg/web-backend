@@ -22,6 +22,7 @@ async def lifespan(app: FastAPI):
     database = environ.get("DB_DATABASE")
     address = environ.get("DB_ADDRESS")
     password = environ.get("DB_PASSWORD")
+    jwt_key = environ.get("JWT_SECRET_KEY")
 
     if not user or not database or not address:
         msg = (
@@ -33,6 +34,11 @@ async def lifespan(app: FastAPI):
 
     if not password:
         msg = f"No DB_PASSWORD provided for user '{user}'"
+        logger.error(msg)
+        raise RuntimeError(msg)
+    
+    if not jwt_key:
+        msg = "No JWT_SECRET_KEY provided in environment variables."
         logger.error(msg)
         raise RuntimeError(msg)
 
@@ -52,7 +58,7 @@ async def lifespan(app: FastAPI):
         raise RuntimeError(msg)
 
     # Make session available on request.state
-    yield {"async_session": async_session}
+    yield {"async_session": async_session, "jwt_key": jwt_key}
 
     # Clean up
     await engine.dispose()

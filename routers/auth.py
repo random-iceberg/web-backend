@@ -10,12 +10,16 @@ from datetime import datetime, timedelta, timezone
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7" # TODO: add to environment variable
-ALGORITHM = "HS256"
 
 class SignupRequest(BaseModel):
     email: str
     password: str
+
+
+class SignupResponse(BaseModel):
+    id: str
+    email: str
+    message: str = "User registered successfully."
 
 
 class LoginRequest(BaseModel):
@@ -23,12 +27,13 @@ class LoginRequest(BaseModel):
     password: str
 
 
-@router.get('/') # TODO: change into something more meaningful.
-async def say_schalom():
-    return "Schalom, world!"
+class LoginResponse(BaseModel):
+    message: str = "Login successful."
+    access_token: str
+
 
 @router.post("/signup", summary="Register a new user")
-async def signup(data: SignupRequest, request: Request):
+async def signup(data: SignupRequest, request: Request) -> SignupResponse:
     """
     Registers a new user with the provided email and password.
 
@@ -39,19 +44,12 @@ async def signup(data: SignupRequest, request: Request):
     Returns:
         dict: Contains user ID and email of the newly registered user
     """
-    try:
-        async with request.state.async_session() as session: # TODO: (Question) should the async_session be started here?
-            user: User = await create_user(session, data.email, data.password)
-            print(f"User created: {user}")
-            return {"id": str(user.id), "email": user.email}
-    except HTTPException as exc:
-        raise exc
-    except Exception as exc:
-        logger.error(f"User registration failed: {exc}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error during signup.")
+    async with request.state.async_session() as session:
+        user: User = await create_user(session, data.email, data.password)
+        return SignupResponse(id=user.id, email=user.email)
     
 @router.post("/login", summary="Authenticate an existing user")
-async def login(data: LoginRequest, request: Request) -> Dict[str, str]:
+async def login(data: LoginRequest, request: Request) -> LoginResponse:
     """
     Verify user credentials and return a JWT token.
  
@@ -62,20 +60,13 @@ async def login(data: LoginRequest, request: Request) -> Dict[str, str]:
     Returns:
         dict: Success message, JWT access token
     """
-    try:
-        async with request.state.async_session() as session: # TODO: (Question) should the async_session be started here?
-            user: User = await authenticate_user(session, data.email, data.password)
+    async with request.state.async_session() as session: # TODO: (Question) should the async_session be started here?
+        user: User = await authenticate_user(session, data.email, data.password)
 
-            payload = {
-                "sub": str(user.id),
-                "exp": datetime.now(timezone.utc) + timedelta(hours=1)
-            }
+        payload = {
+            "sub": str(user.id),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=1)
+        }
 
-            token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-            return {"message": "Login successful.", "access_token": token}
-
-    except HTTPException as exc:
-        raise exc
-    except Exception as exc:
-        logger.error(f"User login failed: {exc}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error during login.")
+        token = jwt.encode(payload, request.state.jwt_key, algorithm="HS256")
+        return LoginResponse(access_token=token)

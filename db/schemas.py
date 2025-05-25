@@ -82,6 +82,8 @@ class User(Base):
     id: M[int] = column(primary_key=True, autoincrement=True)
     email: M[str] = column(unique=True, nullable=False)
     hashed_password: M[str] = column(nullable=False)
-
+    created_at: M[datetime] = column(server_default=func.now())
+    
+    @override
     def __repr__(self) -> str:
         return f"User(id={self.id!r}, email={self.email!r})"
