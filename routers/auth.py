@@ -18,7 +18,6 @@ class SignupRequest(BaseModel):
 
 
 class SignupResponse(BaseModel):
-    id: str
     email: str
     message: str = "User registered successfully."
 
@@ -47,7 +46,7 @@ async def signup(data: SignupRequest, request: Request) -> SignupResponse:
     """
     async with request.state.async_session() as session:
         user: User = await create_user(session, data.email, data.password)
-        return SignupResponse(id=user.id, email=user.email)
+        return SignupResponse(email=user.email)
 
 
 @router.post("/login", summary="Authenticate an existing user")
