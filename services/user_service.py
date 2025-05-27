@@ -2,7 +2,6 @@ import logging
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -12,6 +11,7 @@ from db.schemas import User
 logger = logging.getLogger(__name__)
 
 ph = PasswordHasher()
+
 
 async def create_user(db: AsyncSession, email: str, password: str) -> User:
     existing_user = await db.execute(select(User).where(User.email == email))
