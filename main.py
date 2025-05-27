@@ -10,7 +10,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import create_async_engine
 
 import db
-from routers import models, prediction
+from routers import auth, models, prediction
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ async def lifespan(app: FastAPI):
     address = environ.get("DB_ADDRESS")
     password = environ.get("DB_PASSWORD")
     port = environ.get("DB_PORT")
+    jwt_key = environ.get("JWT_SECRET_KEY")
 
     if not user or not database or not address:
         msg = (
@@ -34,6 +35,11 @@ async def lifespan(app: FastAPI):
 
     if not password:
         msg = f"No DB_PASSWORD provided for user '{user}'"
+        logger.error(msg)
+        raise RuntimeError(msg)
+
+    if not jwt_key:
+        msg = "No JWT_SECRET_KEY provided in environment variables."
         logger.error(msg)
         raise RuntimeError(msg)
 
@@ -56,7 +62,7 @@ async def lifespan(app: FastAPI):
         raise RuntimeError(msg)
 
     # Make session available on request.state
-    yield {"async_session": async_session}
+    yield {"async_session": async_session, "jwt_key": jwt_key}
 
     # Clean up
     await engine.dispose()
@@ -111,6 +117,7 @@ def create_app() -> FastAPI:
     # include routers (prediction & models)
     app.include_router(prediction.router, prefix="/predict", tags=["Prediction"])
     app.include_router(models.router, prefix="/models", tags=["Model Management"])
+    app.include_router(auth.router, prefix="/auth", tags=["User Authentication"])
 
     # Health check endpoint
     @app.get("/health", tags=["Health"])

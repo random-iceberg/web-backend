@@ -8,6 +8,8 @@ dependencies = [
     "httpx",
     "sqlalchemy",
     "asyncpg",
+    "pyjwt",
+    "argon2-cffi",
 ] # TODO: pin versions
 
 [tool.setuptools]
