@@ -9,7 +9,7 @@ dependencies = [
     "sqlalchemy",
     "asyncpg",
     "pyjwt",
-    "bcrypt",
+    "argon2-cffi",
 ] # TODO: pin versions
 
 [tool.setuptools]
