@@ -27,6 +27,8 @@ def postgres_container():
 
 @fixture()
 async def client(postgres_container: PostgresContainer):
+    os.environ["JWT_SECRET_KEY"] = "ultrasecuresecretkey"
+    
     with TestClient(app) as client:
         yield client
 
