@@ -10,6 +10,10 @@ COPY . .
 
 FROM base AS dev
 EXPOSE 8000
+RUN apt-get update && apt-get install -y rsync dos2unix
+COPY ./container/dev-entrypoint.sh /entrypoint.sh
+RUN dos2unix /entrypoint.sh
+ENTRYPOINT [ "bash", "/entrypoint.sh" ]
 CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 FROM base AS prod
