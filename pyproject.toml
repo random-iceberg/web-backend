@@ -8,6 +8,7 @@ dependencies = [
     "httpx",
     "sqlalchemy",
     "asyncpg",
+    "loguru",
 ] # TODO: pin versions
 
 [tool.setuptools]
