@@ -3,6 +3,7 @@ import logging
 import sys
 from datetime import datetime, timezone
 
+
 class JSONFormatter(logging.Formatter):
     def format(self, record):
         log_record = {
