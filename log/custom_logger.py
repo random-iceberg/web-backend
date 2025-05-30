@@ -14,6 +14,7 @@ class JSONFormatter(logging.Formatter):
         }
         return json.dumps(log_record)
 
+
 def setup_logger():
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JSONFormatter())
