@@ -1,7 +1,9 @@
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 
+from dependencies.auth import has_role
 from models.schemas import (
     DeleteResponse,
     ModelCreate,
@@ -11,7 +13,7 @@ from models.schemas import (
 from services.model_service import delete_model, get_all_models, start_model_training
 
 logger = logging.getLogger(__name__)
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(has_role("admin"))])
 
 
 @router.get("/", response_model=list[ModelResponse], summary="List all trained models")

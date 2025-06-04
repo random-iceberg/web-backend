@@ -64,7 +64,6 @@ class Prediction(Base):
     created_at: M[datetime] = column(server_default=func.now())
     input_data: M[dict] = column(JSON)  # Store PassengerData
     result: M[dict] = column(JSON)  # Store PredictionResult
-    # TODO: Add user_id for authentication later
 
     @override
     def __repr__(self) -> str:
@@ -79,8 +78,9 @@ class User(Base):
     id: M[int] = column(primary_key=True, autoincrement=True)
     email: M[str] = column(unique=True, nullable=False)
     hashed_password: M[str] = column(nullable=False)
+    role: M[str] = column(default="user", nullable=False)  # Added role column
     created_at: M[datetime] = column(server_default=func.now())
 
     @override
     def __repr__(self) -> str:
-        return f"User(id={self.id!r}, email={self.email!r})"
+        return f"User(id={self.id!r}, email={self.email!r}, role={self.role!r})"
