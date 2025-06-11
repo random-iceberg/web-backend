@@ -1,9 +1,12 @@
+import os
+import httpx
 import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.schemas import Prediction
 from models.schemas import PassengerData, PredictionResult
+from services.model_service import get_all_models
 
 # TODO: remove httpx, do over the network container yapping #
 logger = logging.getLogger(__name__)
@@ -24,7 +27,7 @@ async def predict_survival(
     await _validate_passenger_data(data)
 
     # Perform inference
-    score: float = _inference_model_call(data)
+    score: float = await _inference_model_call(data, db_session)
 
     # Format into PredictionResult
     result: PredictionResult = _format_prediction_result(score)
@@ -71,12 +74,35 @@ async def _validate_passenger_data(data: PassengerData) -> None:
     return None
 
 
-def _inference_model_call(data: PassengerData) -> float:
-    # TODO: add call to MODEL_SERVICE_API
-    # TODO: add error handling for post request
-    # TODO: add handling for the returned data
+async def _inference_model_call(data: PassengerData, db_session: AsyncSession) -> float:
+    '''
+    TODO: change this behavior later.
+    '''
 
-    return 0.85
+    MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
+
+    async with httpx.AsyncClient() as client:
+        models_response = await client.get(f"{MODEL_SERVICE_URL}/models/")
+        models_response.raise_for_status()
+        model_id = models_response.json()[0]['id'] # TODO: change how model_id is determined
+
+        # TODO: massive TODO, fix the manual remapping
+        embarked_mapping = {"C": "cherbourg", "Q": "queenstown", "S": "southhampton"}
+        input = {
+            "pclass": data.passengerClass,
+            "sex": data.sex,
+            "age": data.age,
+            "fare": "200",
+            "travelled_alone": data.wereAlone,
+            "embarked": embarked_mapping[data.embarkationPort],
+            "title": "mr",
+        }
+
+        predict_response = await client.post(
+            f"{MODEL_SERVICE_URL}/models/{model_id}/predict", json=input
+        )
+        predict_response.raise_for_status()
+        return predict_response.json()['probability']
 
 
 def _format_prediction_result(score: float) -> PredictionResult:
