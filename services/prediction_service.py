@@ -28,7 +28,9 @@ async def predict_survival(
     async with httpx.AsyncClient() as client:
         models_response = await client.get(f"{MODEL_SERVICE_URL}/models/")
         models_response.raise_for_status()
-        model_id = models_response.json()[0]['id'] # TODO: change how model_id is determined
+        model_id = models_response.json()[0][
+            "id"
+        ]  # TODO: change how model_id is determined
 
     # Domain-specific validation (beyond Pydantic)
     await _validate_passenger_data(data)
@@ -81,12 +83,14 @@ async def _validate_passenger_data(data: PassengerData) -> None:
     return None
 
 
-async def _inference_model_call(data: PassengerData, db_session: AsyncSession, model_id: str) -> float:
-    '''
+async def _inference_model_call(
+    data: PassengerData, db_session: AsyncSession, model_id: str
+) -> float:
+    """
     TODO: change this behavior later.
-    '''
+    """
     MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
-    
+
     async with httpx.AsyncClient() as client:
         # TODO: massive TODO, fix the manual remapping
         embarked_mapping = {"C": "cherbourg", "Q": "queenstown", "S": "southhampton"}
@@ -104,7 +108,7 @@ async def _inference_model_call(data: PassengerData, db_session: AsyncSession, m
             f"{MODEL_SERVICE_URL}/models/{model_id}/predict", json=input
         )
         predict_response.raise_for_status()
-        return predict_response.json()['probability']
+        return predict_response.json()["probability"]
 
 
 def _format_prediction_result(score: float) -> PredictionResult:

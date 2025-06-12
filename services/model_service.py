@@ -168,7 +168,7 @@ async def _train_model_task(
                     status_code=503, detail=f"Model service is unavailable: {exc}"
                 )
 
-            '''
+            """
             Mapping the features to match how it's expected as an input from the model.
             
             Below, the classes that currently clash between the frontend and the model: 
@@ -185,9 +185,11 @@ async def _train_model_task(
             Current solution: # TODO: change in frontend or model later.
             - remove the sibsp and parch features from the feature list, 
             - add is_alone as 1, and age_class as 22, in case values must be sent (randomly chosen by shaf).
-            '''
+            """
 
-            model_data.features = [feat for feat in model_data.features if feat not in {"sibsp", "parch"}]
+            model_data.features = [
+                feat for feat in model_data.features if feat not in {"sibsp", "parch"}
+            ]
 
             # Prepare data for the model training service
             training_payload = {
@@ -201,7 +203,9 @@ async def _train_model_task(
 
             # Call the model service to train the model
             response = await client.post(
-                f"{MODEL_SERVICE_URL}/models/train", json=training_payload, timeout=300.0
+                f"{MODEL_SERVICE_URL}/models/train",
+                json=training_payload,
+                timeout=300.0,
             )  # 5 min timeout for training
             response.raise_for_status()
 
