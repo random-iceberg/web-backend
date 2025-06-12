@@ -14,7 +14,7 @@ MODEL_SERVICE_API = ""
 
 
 async def predict_survival(
-    data: PassengerData, db_session: AsyncSession
+    data: PassengerData, db_session: AsyncSession, model_id: str | None = None
 ) -> PredictionResult:
     """
     Main entry for predicting survival and storing the result:
@@ -23,11 +23,18 @@ async def predict_survival(
       3. Store prediction in database.
       4. Format and return the prediction result.
     """
+    MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
+
+    async with httpx.AsyncClient() as client:
+        models_response = await client.get(f"{MODEL_SERVICE_URL}/models/")
+        models_response.raise_for_status()
+        model_id = models_response.json()[0]['id'] # TODO: change how model_id is determined
+
     # Domain-specific validation (beyond Pydantic)
     await _validate_passenger_data(data)
 
     # Perform inference
-    score: float = await _inference_model_call(data, db_session)
+    score: float = await _inference_model_call(data, db_session, model_id)
 
     # Format into PredictionResult
     result: PredictionResult = _format_prediction_result(score)
@@ -74,18 +81,13 @@ async def _validate_passenger_data(data: PassengerData) -> None:
     return None
 
 
-async def _inference_model_call(data: PassengerData, db_session: AsyncSession) -> float:
+async def _inference_model_call(data: PassengerData, db_session: AsyncSession, model_id: str) -> float:
     '''
     TODO: change this behavior later.
     '''
-
     MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
-
+    
     async with httpx.AsyncClient() as client:
-        models_response = await client.get(f"{MODEL_SERVICE_URL}/models/")
-        models_response.raise_for_status()
-        model_id = models_response.json()[0]['id'] # TODO: change how model_id is determined
-
         # TODO: massive TODO, fix the manual remapping
         embarked_mapping = {"C": "cherbourg", "Q": "queenstown", "S": "southhampton"}
         input = {
