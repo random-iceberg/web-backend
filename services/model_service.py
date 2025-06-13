@@ -191,9 +191,16 @@ async def _train_model_task(
                 feat for feat in model_data.features if feat not in {"sibsp", "parch"}
             ]
 
+            ALGORITHM_MAP = {
+                "Random Forest": "rf",
+                "SVM": "svm",
+                "Decision Tree": "dt",
+                "Logistic Regression": "lr",
+            }
+
             # Prepare data for the model training service
             training_payload = {
-                "algo": model_data.algorithm,
+                "algo": {"name": ALGORITHM_MAP[model_data.algorithm]},
                 "features": model_data.features,
             }
 
@@ -212,7 +219,7 @@ async def _train_model_task(
             training_result = response.json()
             # Model service currently returns {"status": "..."}.
             # Changed to check if Accuracy is added later on, Need Team Lead Input
-            accuracy = training_result.get("accuracy")
+            accuracy = training_result["info"]["accuracy"]
             model_service_status = training_result.get("status", "unknown")
             logger.info(
                 f"Model service response for model {model_id}: status='{model_service_status}', accuracy='{accuracy}'"
