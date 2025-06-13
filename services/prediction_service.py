@@ -4,6 +4,7 @@ import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from typing import Dict
 from db.schemas import Prediction
 from models.schemas import PassengerData, PredictionResult
 from services.model_service import get_all_models
@@ -36,10 +37,10 @@ async def predict_survival(
     await _validate_passenger_data(data)
 
     # Perform inference
-    score: float = await _inference_model_call(data, db_session, model_id)
+    response: float = await _inference_model_call(data, db_session, model_id)
 
     # Format into PredictionResult
-    result: PredictionResult = _format_prediction_result(score)
+    result: PredictionResult = _format_prediction_result(response)
 
     # Store prediction in database
     new_prediction = Prediction(
@@ -85,7 +86,7 @@ async def _validate_passenger_data(data: PassengerData) -> None:
 
 async def _inference_model_call(
     data: PassengerData, db_session: AsyncSession, model_id: str
-) -> float:
+) -> Dict:
     """
     TODO: change this behavior later.
     """
@@ -108,19 +109,15 @@ async def _inference_model_call(
             f"{MODEL_SERVICE_URL}/models/{model_id}/predict", json=input
         )
         predict_response.raise_for_status()
-        return predict_response.json()["probability"]
+        return {
+            "survived": predict_response.json()["survived"],
+            "probability": predict_response.json()["probability"],
+        }
 
 
-def _format_prediction_result(score: float) -> PredictionResult:
+def _format_prediction_result(response: Dict) -> PredictionResult:
     """
     Formats the raw inference score into a structured PredictionResult.
-
-    TODO:
-      - Map the raw score to a boolean survival outcome.
-      - Populate additional fields (such as prediction probability).
     """
-    if not (0.0 <= score <= 1.0):
-        logger.error(f"Invalid score: {score}. Must be between 0 and 1.")
-
-    survived = score >= 0.5
-    return PredictionResult(survived=survived, probability=score)
+    survived, probability = response["survived"], response["probability"]
+    return PredictionResult(survived=survived, probability=probability)
