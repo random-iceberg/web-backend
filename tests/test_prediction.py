@@ -1,30 +1,47 @@
-from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, patch
+
+from fastapi.testclient import TestClient
 
 from .client import client as client
 from .client import postgres_container as postgres_container
 
+
 # Patch responses for model service HTTP requests
 def _mocked_model_list(*args, **kwargs):
     """Mocked response for model list GET request"""
+
     class Response:
-        def raise_for_status(self): pass
+        def raise_for_status(self):
+            pass
+
         def json(self):
             # Return list of one model with a fake ID
             return [{"id": "mock-model-id"}]
+
     return Response()
+
 
 def _mocked_predict(*args, **kwargs):
     """Mocked response for prediction POST request"""
+
     class Response:
-        def raise_for_status(self): pass
+        def raise_for_status(self):
+            pass
+
         def json(self):
             # Return a plausible prediction payload
             return {"survived": True, "probability": 0.91}
+
     return Response()
 
-async def _mocked_model_list_async(*args, **kwargs): return _mocked_model_list()
-async def _mocked_predict_async(*args, **kwargs): return _mocked_predict()
+
+async def _mocked_model_list_async(*args, **kwargs):
+    return _mocked_model_list()
+
+
+async def _mocked_predict_async(*args, **kwargs):
+    return _mocked_predict()
+
 
 # Test
 async def test_predict_success(client: TestClient):
@@ -39,8 +56,14 @@ async def test_predict_success(client: TestClient):
         "wereAlone": True,
         "cabinKnown": False,
     }
-    with patch("httpx.AsyncClient.get", new=AsyncMock(side_effect=_mocked_model_list_async)), \
-         patch("httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)):
+    with (
+        patch(
+            "httpx.AsyncClient.get", new=AsyncMock(side_effect=_mocked_model_list_async)
+        ),
+        patch(
+            "httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)
+        ),
+    ):
         response = client.post("/predict", json=payload)
     assert response.status_code == 200, (
         f"Expected status code 200, got {response.status_code}"
@@ -50,16 +73,24 @@ async def test_predict_success(client: TestClient):
     assert "survived" in data, "Response missing 'survived' field"
     assert "probability" in data, "Response missing 'probability' field"
 
+
 async def test_get_prediction_history_empty(client: TestClient):
     """Test GET /predict/history endpoint when history is empty"""
-    with patch("httpx.AsyncClient.get", new=AsyncMock(side_effect=_mocked_model_list_async)), \
-         patch("httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)):
+    with (
+        patch(
+            "httpx.AsyncClient.get", new=AsyncMock(side_effect=_mocked_model_list_async)
+        ),
+        patch(
+            "httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)
+        ),
+    ):
         response = client.get("/predict/history")
     assert response.status_code == 200
 
     data = response.json()
     assert isinstance(data, list)
     assert len(data) == 0  # Database is empty here
+
 
 # TODO: add separate test: call /predict a few times, then check /predict/history
 async def test_get_prediction_history(client: TestClient):
@@ -75,8 +106,14 @@ async def test_get_prediction_history(client: TestClient):
         "wereAlone": False,
         "cabinKnown": True,
     }
-    with patch("httpx.AsyncClient.get", new=AsyncMock(side_effect=_mocked_model_list_async)), \
-         patch("httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)):
+    with (
+        patch(
+            "httpx.AsyncClient.get", new=AsyncMock(side_effect=_mocked_model_list_async)
+        ),
+        patch(
+            "httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)
+        ),
+    ):
         for _ in range(3):
             client.post("/predict", json=payload)
 

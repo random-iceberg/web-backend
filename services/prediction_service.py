@@ -1,13 +1,12 @@
-import os
-import httpx
 import logging
+import os
+from typing import Dict
 
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from typing import Dict
 from db.schemas import Prediction
 from models.schemas import PassengerData, PredictionResult
-from services.model_service import get_all_models
 
 # TODO: remove httpx, do over the network container yapping #
 logger = logging.getLogger(__name__)

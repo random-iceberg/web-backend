@@ -155,7 +155,7 @@ async def _train_model_task(
 
             # Prepare and send training request
             training_payload = _prepare_training_payload(model_data)
-            
+
             logger.info(
                 f"Sending training request to model service for model {model_id} "
                 f"with payload: {training_payload}"
@@ -169,9 +169,7 @@ async def _train_model_task(
             response.raise_for_status()
 
             # Process training results
-            await _process_training_results(
-                async_session, model_id, response.json()
-            )
+            await _process_training_results(async_session, model_id, response.json())
 
     except httpx.HTTPStatusError as exc:
         logger.error(
@@ -188,15 +186,11 @@ async def _train_model_task(
 
 
 async def _check_model_service_health(
-    client: httpx.AsyncClient, 
-    service_url: str, 
-    model_id: str
+    client: httpx.AsyncClient, service_url: str, model_id: str
 ) -> None:
     """Check if model service is healthy."""
     try:
-        health_response = await client.get(
-            f"{service_url}/health", timeout=5.0
-        )
+        health_response = await client.get(f"{service_url}/health", timeout=5.0)
         health_response.raise_for_status()
         logger.info(f"Model service health check successful for model {model_id}")
     except httpx.RequestError as exc:
@@ -218,7 +212,7 @@ def _prepare_training_payload(model_data: ModelCreate) -> dict:
 
     # Map to model service format
     algo_name = ALGORITHM_MAP.get(model_data.algorithm, "rf")
-    
+
     return {
         "algo": {"name": algo_name},
         "features": model_data.features,
@@ -228,18 +222,18 @@ def _prepare_training_payload(model_data: ModelCreate) -> dict:
 async def _process_training_results(
     async_session: async_sessionmaker[AsyncSession],
     model_id: str,
-    training_result: dict
+    training_result: dict,
 ) -> None:
     """Process and store training results."""
     model_info = training_result.get("info", {})
     accuracy = model_info.get("accuracy")
-    
+
     if accuracy is not None:
         async with async_session() as session:
             stmt = select(db.Model).where(db.Model.uuid == model_id)
             result = await session.scalars(stmt)
             model_db_instance = result.one_or_none()
-            
+
             if model_db_instance:
                 model_db_instance.accuracy = accuracy
                 await session.commit()
@@ -256,16 +250,14 @@ async def _process_training_results(
 
 
 async def _update_model_status(
-    async_session: async_sessionmaker[AsyncSession],
-    model_id: str,
-    status: str
+    async_session: async_sessionmaker[AsyncSession], model_id: str, status: str
 ) -> None:
     """Update model status in database."""
     async with async_session() as session:
         stmt = select(db.Model).where(db.Model.uuid == model_id)
         result = await session.scalars(stmt)
         model = result.one_or_none()
-        
+
         if model:
             # Add a status field to model if needed
             # model.status = status
