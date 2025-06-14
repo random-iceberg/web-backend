@@ -255,6 +255,8 @@ def _estimate_fare(passenger_class: int, embarkation_port: str) -> float:
         
     Returns:
         Estimated fare
+
+    TODO: Replace with actual fare estimation logic
     """
     # Base fares by class
     base_fare_by_class = {
