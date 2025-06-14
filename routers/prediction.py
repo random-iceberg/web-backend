@@ -1,14 +1,19 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Request
+import logging
+from datetime import datetime
+
+from fastapi import APIRouter, HTTPException, Request, Depends # Added Depends
 from pydantic import BaseModel
 from sqlalchemy import desc, select
 from sqlalchemy.exc import SQLAlchemyError
+from typing import Annotated # Added Annotated
 
 from db.schemas import Prediction
 from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
+from dependencies.auth import has_role # Import has_role
 
 # Configure module-level logger
 logger = logging.getLogger(__name__)
@@ -18,7 +23,9 @@ router = APIRouter()
 
 @router.post("/", response_model=PredictionResult, summary="Predict Titanic Survival")
 async def predict_passenger_survival(
-    data: PassengerData, request: Request
+    data: PassengerData, 
+    request: Request,
+    role: Annotated[str, Depends(has_role(["anon", "user", "admin"]))] # Add dependency for all roles
 ) -> PredictionResult:
     """
     Endpoint to predict the survival of a Titanic passenger.
