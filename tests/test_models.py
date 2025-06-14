@@ -1,17 +1,25 @@
 import uuid
-
 from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock, patch
 
 from .client import client as client
 from .client import postgres_container as postgres_container
 
+def _mocked_train_post(*args, **kwargs):
+    """Mocked response for model training POST request"""
+    class Response:
+        def raise_for_status(self): pass
+        def json(self):
+            # Model service training returns info dict (simulate as needed)
+            return {"info": {"accuracy": 0.95}}
+    return Response()
+async def _mocked_train_post_async(*args, **kwargs): return _mocked_train_post()
 
 async def test_list_models(client: TestClient):
     """Test GET /models/ endpoint"""
     response = client.get("/models/")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
-
 
 async def test_train_model_success(client: TestClient):
     """Test POST /models/train endpoint with valid data"""
@@ -20,12 +28,13 @@ async def test_train_model_success(client: TestClient):
         "name": "Test Model",
         "features": ["pclass", "sex", "age", "fare"],
     }
-    response = client.post("/models/train", json=payload)
+    with patch("httpx.AsyncClient.get", new=AsyncMock()), \
+         patch("httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_train_post_async)):
+        response = client.post("/models/train", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert "job_id" in data
     assert data["status"] == "training_started"
-
 
 async def test_train_model_invalid(client: TestClient):
     """Test POST /models/train endpoint with invalid data"""
@@ -37,7 +46,6 @@ async def test_train_model_invalid(client: TestClient):
     response = client.post("/models/train", json=payload)
     assert response.status_code == 400
 
-
 async def test_delete_model(client: TestClient):
     """Test DELETE /models/{id} endpoint"""
     # First create a model to delete
@@ -46,7 +54,9 @@ async def test_delete_model(client: TestClient):
         "name": "Delete Test Model",
         "features": ["pclass", "sex", "age"],
     }
-    create_response = client.post("/models/train", json=payload)
+    with patch("httpx.AsyncClient.get", new=AsyncMock()), \
+         patch("httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_train_post_async)):
+        create_response = client.post("/models/train", json=payload)
     assert create_response.status_code == 200
 
     # Extract job_id and convert to model_id
@@ -58,9 +68,7 @@ async def test_delete_model(client: TestClient):
     assert delete_response.status_code == 200
     assert delete_response.json()["status"] == "success"
 
-
 async def test_delete_nonexistent_model(client: TestClient):
-    """Test DELETE /models/{id} with non-existent ID"""
     fake_id = str(uuid.uuid4())
     response = client.delete(f"/models/{fake_id}")
     assert response.status_code == 404
