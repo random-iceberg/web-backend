@@ -3,9 +3,6 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
-from .client import client as client
-from .client import postgres_container as postgres_container
-
 
 def _mocked_train_post(*args, **kwargs):
     """Mocked response for model training POST request"""
