@@ -7,10 +7,9 @@ from sqlalchemy import desc, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from db.schemas import Prediction
-from dependencies.auth import AnyRole  
+from dependencies.auth import AnyRole
 from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,12 +43,10 @@ async def predict_passenger_survival(
             return result
 
     except ValueError as ve:
-        
         logger.warning("Validation error during prediction", exc_info=ve)
         raise HTTPException(status_code=400, detail=str(ve))
 
     except Exception as exc:
-        
         logger.error("Error during prediction", exc_info=exc)
         raise HTTPException(status_code=500, detail="Internal Server Error")
 

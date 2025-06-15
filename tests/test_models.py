@@ -1,9 +1,25 @@
 import uuid
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
-from .client import client as client
-from .client import postgres_container as postgres_container
+
+def _mocked_train_post(*args, **kwargs):
+    """Mocked response for model training POST request"""
+
+    class Response:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            # Model service training returns info dict (simulate as needed)
+            return {"info": {"accuracy": 0.95}}
+
+    return Response()
+
+
+async def _mocked_train_post_async(*args, **kwargs):
+    return _mocked_train_post()
 
 
 async def test_list_models(client: TestClient):
@@ -21,7 +37,14 @@ async def test_train_model_success(client: TestClient, admin_user_token: str):
         "name": "Test Model",
         "features": ["pclass", "sex", "age", "fare"],
     }
-    response = client.post("/models/train", json=payload, headers=headers)
+    with (
+        patch("httpx.AsyncClient.get", new=AsyncMock()),
+        patch(
+            "httpx.AsyncClient.post",
+            new=AsyncMock(side_effect=_mocked_train_post_async),
+        ),
+    ):
+        response = client.post("/models/train", json=payload, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert "job_id" in data
@@ -60,7 +83,14 @@ async def test_delete_model_success(client: TestClient, admin_user_token: str):
         "name": "Delete Test Model",
         "features": ["pclass", "sex", "age"],
     }
-    create_response = client.post("/models/train", json=payload, headers=headers)
+    with (
+        patch("httpx.AsyncClient.get", new=AsyncMock()),
+        patch(
+            "httpx.AsyncClient.post",
+            new=AsyncMock(side_effect=_mocked_train_post_async),
+        ),
+    ):
+        create_response = client.post("/models/train", json=payload, headers=headers)
     assert create_response.status_code == 200
 
     # Extract job_id and convert to model_id
