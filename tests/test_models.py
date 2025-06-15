@@ -1,11 +1,9 @@
 import uuid
 
 from fastapi.testclient import TestClient
-from pytest import fixture
 
 from .client import client as client
 from .client import postgres_container as postgres_container
-from .client import admin_user_token
 
 
 async def test_list_models(client: TestClient):

@@ -1,16 +1,16 @@
 import os
-import jwt
 from datetime import datetime, timedelta, timezone
 
+import jwt
 from fastapi.testclient import TestClient
 from pytest import fixture
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
-from db.schemas import Base, User
+from db.helpers import init_db
+from db.schemas import Base
 from main import app
 from services.user_service import create_user
-from db.helpers import init_db
 
 
 @fixture(scope="session")
@@ -39,14 +39,12 @@ async def async_engine_test(postgres_container: PostgresContainer):
 
 
 @fixture()
-async def async_session_test(async_engine_test): # Depends on async_engine_test
+async def async_session_test(async_engine_test):
     """Fixture for async database session for tests."""
     async_session_factory = await init_db(async_engine_test)
-    
-    # Yield a session instance for the test
+
     async with async_session_factory() as session:
         yield session
-    # No engine.dispose() here, handled by async_engine_test
 
 
 @fixture()
@@ -56,7 +54,9 @@ async def admin_user_token(async_session_test: AsyncSession):
     admin_password = "adminpassword"
     jwt_secret_key = os.environ["JWT_SECRET_KEY"]
 
-    admin_user = await create_user(async_session_test, admin_email, admin_password, role="admin")
+    admin_user = await create_user(
+        async_session_test, admin_email, admin_password, role="admin"
+    )
 
     payload = {
         "sub": str(admin_user.id),
@@ -68,13 +68,11 @@ async def admin_user_token(async_session_test: AsyncSession):
 
 
 @fixture()
-async def client(postgres_container: PostgresContainer, async_engine_test): # Depends on async_engine_test
+async def client(postgres_container: PostgresContainer, async_engine_test):
     os.environ["JWT_SECRET_KEY"] = "ultrasecuresecretkey"
 
     with TestClient(app) as client:
         yield client
 
-    # Clean the database using the engine from async_engine_test
     async with async_engine_test.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
-    # No engine.dispose() here, handled by async_engine_test fixture

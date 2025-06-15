@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 ph = PasswordHasher()
 
 
-async def create_user(db: AsyncSession, email: str, password: str, role: str = "user") -> User:
+async def create_user(
+    db: AsyncSession, email: str, password: str, role: str = "user"
+) -> User:
     existing_user = await db.execute(select(User).where(User.email == email))
     if existing_user.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Duplicate email.")

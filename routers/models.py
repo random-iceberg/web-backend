@@ -1,9 +1,8 @@
 import logging
-from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 
-from dependencies.auth import has_role, get_user_role # Import get_user_role
+from dependencies.auth import AdminRole, AnyRole
 from models.schemas import (
     DeleteResponse,
     ModelCreate,
@@ -13,13 +12,13 @@ from models.schemas import (
 from services.model_service import delete_model, get_all_models, start_model_training
 
 logger = logging.getLogger(__name__)
-router = APIRouter() # Removed global dependency
+router = APIRouter()
 
 
 @router.get("/", response_model=list[ModelResponse], summary="List all trained models")
 async def list_models(
     request: Request,
-    role: Annotated[str, Depends(has_role(["anon", "user", "admin"]))] # Allow all roles
+    role: AnyRole,
 ):
     """
     Retrieves a list of all available trained models.
@@ -40,10 +39,10 @@ async def list_models(
 
 @router.post("/train", response_model=TrainingResponse, summary="Train a new model")
 async def train_model(
-    model_data: ModelCreate, 
-    background_tasks: BackgroundTasks, 
+    model_data: ModelCreate,
+    background_tasks: BackgroundTasks,
     request: Request,
-    role: Annotated[str, Depends(has_role(["admin"]))] # Admin only
+    role: AdminRole,
 ):
     """
     Initiates the training of a new ML model.
@@ -70,9 +69,9 @@ async def train_model(
 
 @router.delete("/{model_id}", response_model=DeleteResponse, summary="Delete a model")
 async def remove_model(
-    model_id: str, 
+    model_id: str,
     request: Request,
-    role: Annotated[str, Depends(has_role(["admin"]))] # Admin only
+    role: AdminRole,
 ):
     """
     Removes a specific model by ID.
