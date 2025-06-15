@@ -2,9 +2,6 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
-from .client import client as client
-from .client import postgres_container as postgres_container
-
 
 # Patch responses for model service HTTP requests
 def _mocked_model_list(*args, **kwargs):

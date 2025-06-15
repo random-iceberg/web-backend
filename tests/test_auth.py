@@ -1,8 +1,5 @@
 from fastapi.testclient import TestClient
 
-from .client import client as client
-from .client import postgres_container as postgres_container
-
 
 async def test_signup_does_not_fail(client: TestClient):
     payload = {
