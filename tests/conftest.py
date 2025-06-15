@@ -74,5 +74,6 @@ async def client(postgres_container: PostgresContainer, async_engine_test):
     with TestClient(app) as client:
         yield client
 
+    # Clean the database
     async with async_engine_test.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

@@ -11,6 +11,7 @@ from dependencies.auth import AnyRole
 from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
 
+# Configure module-level logger
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -37,16 +38,18 @@ async def predict_passenger_survival(
         HTTPException 500: Internal server error.
     """
     try:
-        async_session = request.state.async_session
-        async with async_session() as db_session:
+        async_session = request.state.async_session  # This is a factory
+        async with async_session() as db_session:  # Create a session instance
             result = await predict_survival(data, db_session)
             return result
 
     except ValueError as ve:
+        # Service layer threw validation error
         logger.warning("Validation error during prediction", exc_info=ve)
         raise HTTPException(status_code=400, detail=str(ve))
 
     except Exception as exc:
+        # Unexpected errors
         logger.error("Error during prediction", exc_info=exc)
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
