@@ -1,5 +1,8 @@
 import logging
+import os
+from typing import Dict
 
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.schemas import Prediction
@@ -11,7 +14,7 @@ MODEL_SERVICE_API = ""
 
 
 async def predict_survival(
-    data: PassengerData, db_session: AsyncSession
+    data: PassengerData, db_session: AsyncSession, model_id: str | None = None
 ) -> PredictionResult:
     """
     Main entry for predicting survival and storing the result:
@@ -20,14 +23,23 @@ async def predict_survival(
       3. Store prediction in database.
       4. Format and return the prediction result.
     """
+    MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
+
+    async with httpx.AsyncClient() as client:
+        models_response = await client.get(f"{MODEL_SERVICE_URL}/models/")
+        models_response.raise_for_status()
+        model_id = models_response.json()[0][
+            "id"
+        ]  # TODO: change how model_id is determined
+
     # Domain-specific validation (beyond Pydantic)
     await _validate_passenger_data(data)
 
     # Perform inference
-    score: float = _inference_model_call(data)
+    response: float = await _inference_model_call(data, db_session, model_id)
 
     # Format into PredictionResult
-    result: PredictionResult = _format_prediction_result(score)
+    result: PredictionResult = _format_prediction_result(response)
 
     # Store prediction in database
     new_prediction = Prediction(
@@ -71,24 +83,40 @@ async def _validate_passenger_data(data: PassengerData) -> None:
     return None
 
 
-def _inference_model_call(data: PassengerData) -> float:
-    # TODO: add call to MODEL_SERVICE_API
-    # TODO: add error handling for post request
-    # TODO: add handling for the returned data
+async def _inference_model_call(
+    data: PassengerData, db_session: AsyncSession, model_id: str
+) -> Dict:
+    """
+    TODO: change this behavior later.
+    """
+    MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
 
-    return 0.85
+    async with httpx.AsyncClient() as client:
+        # TODO: massive TODO, fix the manual remapping
+        embarked_mapping = {"C": "cherbourg", "Q": "queenstown", "S": "southhampton"}
+        input = {
+            "pclass": data.passengerClass,
+            "sex": data.sex,
+            "age": data.age,
+            "fare": "200",
+            "travelled_alone": data.wereAlone,
+            "embarked": embarked_mapping[data.embarkationPort],
+            "title": "mr",
+        }
+
+        predict_response = await client.post(
+            f"{MODEL_SERVICE_URL}/models/{model_id}/predict", json=input
+        )
+        predict_response.raise_for_status()
+        return {
+            "survived": predict_response.json()["survived"],
+            "probability": predict_response.json()["probability"],
+        }
 
 
-def _format_prediction_result(score: float) -> PredictionResult:
+def _format_prediction_result(response: Dict) -> PredictionResult:
     """
     Formats the raw inference score into a structured PredictionResult.
-
-    TODO:
-      - Map the raw score to a boolean survival outcome.
-      - Populate additional fields (such as prediction probability).
     """
-    if not (0.0 <= score <= 1.0):
-        logger.error(f"Invalid score: {score}. Must be between 0 and 1.")
-
-    survived = score >= 0.5
-    return PredictionResult(survived=survived, probability=score)
+    survived, probability = response["survived"], response["probability"]
+    return PredictionResult(survived=survived, probability=probability)

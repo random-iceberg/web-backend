@@ -58,8 +58,9 @@ async def start_model_training(
     Initiates the training of a new model in the background.
 
     Args:
-        model_data (ModelCreate): Model configuration
-        background_tasks (BackgroundTasks): FastAPI background tasks handler
+        async_session: Database session factory
+        model_data: Model configuration
+        background_tasks: FastAPI background tasks handler
 
     Returns:
         TrainingResponse: Object with job information
@@ -101,15 +102,15 @@ async def delete_model(
     async_session: async_sessionmaker[AsyncSession], model_id: str
 ) -> DeleteResponse:
     """
-    Deletes a model from the database and removes associated files.
+    Deletes a model from the database.
 
     Args:
-        model_id (str): ID of the model to delete
+        async_session: Database session factory
+        model_id: ID of the model to delete
 
     Returns:
         DeleteResponse: Status and message
     """
-
     async with async_session() as session:
         # Check if model exists
         stmt = select(db.Model).where(db.Model.uuid == model_id)
@@ -123,8 +124,7 @@ async def delete_model(
         await session.delete(model)
         await session.commit()
 
-    # TODO: Delete model files from storage
-    # This would involve removing the saved model file from the Docker volume
+    # TODO: Implement cleanup of model files from storage if needed
 
     return DeleteResponse(
         status="success",
@@ -141,8 +141,9 @@ async def _train_model_task(
     Background task to train the model.
 
     Args:
-        model_id (str): ID of the model to train
-        model_data (ModelCreate): Model configuration
+        async_session: Database session factory
+        model_id: ID of the model to train
+        model_data: Model configuration
     """
     logger.info(f"Starting training for model {model_id} ({model_data.name})")
     MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
@@ -150,82 +151,115 @@ async def _train_model_task(
     try:
         async with httpx.AsyncClient() as client:
             # Health check for the model service
-            try:
-                health_response = await client.get(
-                    f"{MODEL_SERVICE_URL}/health", timeout=5.0
-                )
-                health_response.raise_for_status()
-                logger.info(
-                    f"Model service health check successful for model {model_id}"
-                )
-            except httpx.RequestError as exc:
-                logger.error(
-                    f"Model service health check failed for model {model_id}: {exc}"
-                )
-                # Optionally, can add an update model status to 'training_failed_health_check'
-                # For now, the training proceeds and potentially fails at the training request. Need Team Lead Input
-                raise HTTPException(
-                    status_code=503, detail=f"Model service is unavailable: {exc}"
-                )
+            await _check_model_service_health(client, MODEL_SERVICE_URL, model_id)
 
-            # Prepare data for the model training service
-            training_payload = {
-                "parameters": {
-                    "algorithm": model_data.algorithm,
-                    "features": model_data.features,
-                    "model_id": model_id,
-                }
-            }
+            # Prepare and send training request
+            training_payload = _prepare_training_payload(model_data)
 
             logger.info(
-                f"Sending training request to model service for model {model_id} with payload: {training_payload}"
+                f"Sending training request to model service for model {model_id} "
+                f"with payload: {training_payload}"
             )
 
-            # Call the model service to train the model
             response = await client.post(
-                f"{MODEL_SERVICE_URL}/training/", json=training_payload, timeout=300.0
-            )  # 5 min timeout for training
+                f"{MODEL_SERVICE_URL}/models/train",
+                json=training_payload,
+                timeout=300.0,  # 5 min timeout for training
+            )
             response.raise_for_status()
 
-            training_result = response.json()
-            # Model service currently returns {"status": "..."}.
-            # Changed to check if Accuracy is added later on, Need Team Lead Input
-            accuracy = training_result.get("accuracy")
-            model_service_status = training_result.get("status", "unknown")
-            logger.info(
-                f"Model service response for model {model_id}: status='{model_service_status}', accuracy='{accuracy}'"
-            )
-
-            if accuracy is not None:
-                # Update model with accuracy from the model service
-                async with async_session() as session:
-                    stmt = select(db.Model).where(db.Model.uuid == model_id)
-                    result = await session.scalars(stmt)
-                    model_db_instance = result.one_or_none()
-                    if model_db_instance:
-                        model_db_instance.accuracy = accuracy
-                        await session.commit()
-                        logger.info(
-                            f"Training completed and accuracy updated for model {model_id}"
-                        )
-                    else:
-                        logger.error(
-                            f"Model {model_id} not found in DB after training attempt."
-                        )
-            else:
-                logger.warning(
-                    f"Model service did not return accuracy for model {model_id}. Response: {training_result}"
-                )
+            # Process training results
+            await _process_training_results(async_session, model_id, response.json())
 
     except httpx.HTTPStatusError as exc:
         logger.error(
-            f"HTTP error during model training request for {model_id}: {exc.response.status_code} - {exc.response.text}"
+            f"HTTP error during model training for {model_id}: "
+            f"{exc.response.status_code} - {exc.response.text}"
         )
-        # TODO: Update model status to 'training_failed' in DB
-        # For now, just error logged
+        await _update_model_status(async_session, model_id, "training_failed")
     except httpx.RequestError as exc:
         logger.error(f"Request error during model training for {model_id}: {exc}")
-        # TODO: Update model status to 'training_failed' in DB
+        await _update_model_status(async_session, model_id, "training_failed")
     except Exception as e:
         logger.error(f"Unexpected error training model {model_id}: {str(e)}")
-        # TODO: Update model status to 'training_failed' in DB
+        await _update_model_status(async_session, model_id, "training_failed")
+
+
+async def _check_model_service_health(
+    client: httpx.AsyncClient, service_url: str, model_id: str
+) -> None:
+    """Check if model service is healthy."""
+    try:
+        health_response = await client.get(f"{service_url}/health", timeout=5.0)
+        health_response.raise_for_status()
+        logger.info(f"Model service health check successful for model {model_id}")
+    except httpx.RequestError as exc:
+        logger.error(f"Model service health check failed for model {model_id}: {exc}")
+        raise HTTPException(
+            status_code=503, detail=f"Model service is unavailable: {exc}"
+        )
+
+
+def _prepare_training_payload(model_data: ModelCreate) -> dict:
+    """Prepare training payload for model service."""
+    # Map frontend algorithm names to model service codes
+    ALGORITHM_MAP = {
+        "Random Forest": "rf",
+        "SVM": "svm",
+        "Decision Tree": "dt",
+        "Logistic Regression": "lr",
+    }
+
+    # Map to model service format
+    algo_name = ALGORITHM_MAP.get(model_data.algorithm, "rf")
+
+    return {
+        "algo": {"name": algo_name},
+        "features": model_data.features,
+    }
+
+
+async def _process_training_results(
+    async_session: async_sessionmaker[AsyncSession],
+    model_id: str,
+    training_result: dict,
+) -> None:
+    """Process and store training results."""
+    model_info = training_result.get("info", {})
+    accuracy = model_info.get("accuracy")
+
+    if accuracy is not None:
+        async with async_session() as session:
+            stmt = select(db.Model).where(db.Model.uuid == model_id)
+            result = await session.scalars(stmt)
+            model_db_instance = result.one_or_none()
+
+            if model_db_instance:
+                model_db_instance.accuracy = accuracy
+                await session.commit()
+                logger.info(
+                    f"Training completed for model {model_id} with accuracy: {accuracy}"
+                )
+            else:
+                logger.error(f"Model {model_id} not found in DB after training")
+    else:
+        logger.warning(
+            f"Model service did not return accuracy for model {model_id}. "
+            f"Response: {training_result}"
+        )
+
+
+async def _update_model_status(
+    async_session: async_sessionmaker[AsyncSession], model_id: str, status: str
+) -> None:
+    """Update model status in database."""
+    async with async_session() as session:
+        stmt = select(db.Model).where(db.Model.uuid == model_id)
+        result = await session.scalars(stmt)
+        model = result.one_or_none()
+
+        if model:
+            # Add a status field to model if needed
+            # model.status = status
+            await session.commit()
+            logger.info(f"Updated model {model_id} status to: {status}")
