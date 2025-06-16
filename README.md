@@ -5,8 +5,8 @@ FastAPI-based backend service for the Titanic Survivor Prediction Application.
 ## 🚀 Quick Start (Zero Configuration)
 
 ```bash
-# From the root docker-compose directory
-docker compose up backend
+# From the project root directory
+docker compose -f 'compose/compose.dev.yaml' up -d --build
 
 # Access Swagger UI
 open http://localhost:8000/docs
