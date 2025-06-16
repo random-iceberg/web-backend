@@ -34,13 +34,13 @@ Access the Swagger UI at: **http://localhost:8000/docs**
 - `GET /health` - Service health check
 - `POST /auth/signup` - User registration
 - `POST /auth/login` - User authentication (returns JWT token)
+- `POST /predict` - Get survival prediction
+- `GET /models` - List available ML models
 
 #### Protected (Requires Authentication)
-- `POST /predict` - Get survival prediction
 - `GET /predict/history` - View last 10 predictions
 
 #### Admin Only
-- `GET /models` - List available ML models
 - `POST /models/train` - Train new model
 - `DELETE /models/{id}` - Delete specific model
 
@@ -88,7 +88,7 @@ backend/
 └── tests/              # Test suite
 ```
 
-## 🔧 Configuration
+## 🔧 Configuration (Optional)
 
 The service is pre-configured in Docker Compose. For local development:
 
