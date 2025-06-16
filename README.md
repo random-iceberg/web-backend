@@ -46,62 +46,26 @@ Access the Swagger UI at: **http://localhost:8000/docs**
 
 ## 🛠️ Development Workflow
 
-### Using Docker Compose (Recommended)
-
-```bash
-# Development mode with hot reload
-cd compose
-docker compose -f compose.dev.yaml up backend
-
-# View logs
-docker compose logs -f backend
-
-# Run tests
-docker compose exec backend uv run pytest
-```
-
-### Optional: Local Development
-
-If you need to run locally without Docker:
+## 🧪 Testing
 
 ```bash
 cd app/backend
 
-# Install dependencies
-uv sync --extra dev
+# Install dependencies (if not already done)
+uv sync --no-cache --extra dev
 
-# Set required environment variables
-export DB_USER=backend
-export DB_DATABASE=backend
-export DB_ADDRESS=localhost
-export DB_PORT=5432
-export DB_PASSWORD=backend_password
-export JWT_SECRET_KEY=development_secret
-export MODEL_SERVICE_URL=http://localhost:8001
+# Run tests
+uv run pytest
 
-# Start PostgreSQL (required)
-docker run -d -p 5432:5432 \
-  -e POSTGRES_USER=backend \
-  -e POSTGRES_PASSWORD=backend_password \
-  -e POSTGRES_DB=backend \
-  postgres:17-alpine
+# Run tests with coverage
+uv run pytest --cov=. --cov-report=html
 
-# Run service
-uv run uvicorn main:app --reload
-```
+# Linting and formatting check
+uv run ruff check
+uv run ruff format --check
 
-## 🧪 Testing
-
-```bash
-# Run tests in container
-docker compose exec backend uv run pytest
-
-# Or with coverage
-docker compose exec backend uv run pytest --cov=. --cov-report=html
-
-# Linting and formatting
-docker compose exec backend uv run ruff check
-docker compose exec backend uv run ruff format
+# Auto-fix formatting
+uv run ruff format
 ```
 
 ## 📁 Project Structure
