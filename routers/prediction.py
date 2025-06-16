@@ -7,6 +7,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from db.schemas import Prediction
+from dependencies.auth import AnyRole
 from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
 
@@ -18,7 +19,9 @@ router = APIRouter()
 
 @router.post("/", response_model=PredictionResult, summary="Predict Titanic Survival")
 async def predict_passenger_survival(
-    data: PassengerData, request: Request
+    data: PassengerData,
+    request: Request,
+    role: AnyRole,
 ) -> PredictionResult:
     """
     Endpoint to predict the survival of a Titanic passenger.

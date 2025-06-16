@@ -2,6 +2,7 @@ import logging
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 
+from dependencies.auth import AdminRole, AnyRole
 from models.schemas import (
     DeleteResponse,
     ModelCreate,
@@ -15,7 +16,10 @@ router = APIRouter()
 
 
 @router.get("/", response_model=list[ModelResponse], summary="List all trained models")
-async def list_models(request: Request):
+async def list_models(
+    request: Request,
+    role: AnyRole,
+):
     """
     Retrieves a list of all available trained models.
 
@@ -35,7 +39,10 @@ async def list_models(request: Request):
 
 @router.post("/train", response_model=TrainingResponse, summary="Train a new model")
 async def train_model(
-    model_data: ModelCreate, background_tasks: BackgroundTasks, request: Request
+    model_data: ModelCreate,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    role: AdminRole,
 ):
     """
     Initiates the training of a new ML model.
@@ -61,7 +68,11 @@ async def train_model(
 
 
 @router.delete("/{model_id}", response_model=DeleteResponse, summary="Delete a model")
-async def remove_model(model_id: str, request: Request):
+async def remove_model(
+    model_id: str,
+    request: Request,
+    role: AdminRole,
+):
     """
     Removes a specific model by ID.
 
