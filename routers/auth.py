@@ -69,15 +69,8 @@ async def login(data: LoginRequest, request: Request) -> LoginResponse:
         payload = {
             "sub": str(user.id),
             "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+            "role": user.role,
         }
 
         token = jwt.encode(payload, request.state.jwt_key, algorithm="HS256")
         return LoginResponse(access_token=token)
-
-
-# TODO: just for the testing purposes, remove when authentication part is complete
-@router.get("/check")
-async def check_user(request: Request) -> dict:
-    token = request.headers["Authorization"].split()[1]
-    payload = jwt.decode(token, request.state.jwt_key, algorithms=["HS256"])
-    return payload

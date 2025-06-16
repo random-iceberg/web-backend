@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 import db
 from routers import auth, models, prediction
+from services import user_service
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -60,6 +61,19 @@ async def lifespan(app: FastAPI):
         msg = f"Failed to connect to the database: {exc}"
         logger.error(msg)
         raise RuntimeError(msg)
+
+    # TODO: remove when the way to configure initial users is fininshed
+    try:
+        async with async_session() as session:
+            _ = await user_service.create_user(
+                session, "admin@test", "apass", role="admin"
+            )
+        async with async_session() as session:
+            _ = await user_service.create_user(
+                session, "user@test", "upass", role="user"
+            )
+    except Exception as e:
+        logger.info(e)
 
     # Make session available on request.state
     yield {"async_session": async_session, "jwt_key": jwt_key}
