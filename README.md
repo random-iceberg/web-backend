@@ -1,120 +1,156 @@
-# Backend Web for Titanic Survivor Prediction Application
+# Backend API Service
 
-## Overview
+FastAPI-based backend service for the Titanic Survivor Prediction Application.
 
-The Backend Web is a FastAPI-based RESTful API responsible for processing Titanic survival prediction requests. It securely integrates with the ML Model API for real-time inference and handles core business logic, authentication, and middleware integration. Built for production, the service supports asynchronous processing, comprehensive API documentation, and containerized deployment via Docker Compose.
+## 🚀 Quick Start (Zero Configuration)
 
-## Features
-
-- **Interactive API Documentation:** Accessible via Swagger UI at `/docs`.
-- **Asynchronous Processing:** Utilizes FastAPI’s async framework for high performance.
-- **Modular Architecture:** Organized into routers, models, and services to ease maintenance and scalability.
-- **Secure ML Integration:** Seamlessly communicates with the dedicated Model API for predictions.
-- **Containerized Deployment:** Fully supported via Docker Compose for reproducible production environments.
-- **Extensible Design:** Prepared for future enhancements including advanced authentication, logging, and error handling.
-
-## Project Structure
-
-```plaintext
-app/backend/
-├── main.py                # FastAPI application entry point
-├── requirements.txt       # Python dependencies
-├── README.md              # Backend Web documentation (this file)
-├── routers/               # Modular API route definitions (e.g., prediction endpoints)
-├── models/                # Data models and request/response schemas
-├── services/              # Business logic layers (including ML integration and authentication)
-└── tests/                 # Unit and integration tests
-```
-
-## Getting Started
-
-### Prerequisites
-
-- Python 3.9.x
-- Virtual environment (recommended)
-- Docker & Docker Compose (for containerized deployment)
-
-### Setup Instructions
-
-Follow these steps to set up your development environment:
-
-1. **Clone the Repository (with Submodules)**  
-   Clone the repository together with all its submodules:
-   ```bash
-   git clone --recurse-submodules https://mygit.th-deg.de/schober-teaching/student-projects/ain-23-software-engineering/ss-25/Random_Iceberg/web-backend.git
-   ```
-
-2. **Enter the Project Directory**  
-   Change directory into the Docker Compose folder:
-   ```bash
-   cd docker-compose
-   ```
-
-3. **Checkout the Development Branch**  
-   Create and switch to a local branch named `dev` that tracks the remote development branch:
-   ```bash
-   git checkout -b dev origin/dev
-   ```
-
-4. **Update All Submodules**  
-   Initialize and update every submodule recursively:
-   ```bash
-   git submodule update --init --recursive
-   ```
-
-5. **Create and Activate a Virtual Environment:**
-   (From the appropriate directory, e.g., `app/backend`) activate Python 3.9.x virtual environment
-   ```bash
-   py -3.9 -m venv .venv
-   source .venv/bin/activate   # On Windows: .venv\Scripts\activate
-   ```
-
-6. **Install Dependencies:**
-   ```bash
-   pip install -e '.[dev]'
-   ```
-
-7. **Run the Application Locally:**
-   ```bash
-   uvicorn main:app --reload --host 0.0.0.0 --port 8000
-   ```
-   Access the API at [http://localhost:8000](http://localhost:8000) and the interactive documentation at [http://localhost:8000/docs](http://localhost:8000/docs).
-
-## Development & Testing
-
-- **Development:**  
-  Use uvicorn with `--reload` to benefit from live code updates.
-- **Code Quality:**  
-  Maintain standards using linters (e.g., flake8) and formatters (e.g., black). Perform regular code reviews.
-- **Testing:**  
-  Run tests with:
-  ```bash
-  pytest
-  ```
-
-## Deployment
-
-Deploy the Backend Web along with other components using Docker Compose:
 ```bash
-docker-compose up --build -d
+# From the project root directory
+docker compose -f 'compose/compose.dev.yaml' up -d --build
+
+# Access Swagger UI
+open http://localhost:8000/docs
 ```
-This command builds the Docker image and launches the container in an orchestrated environment.
 
-## Troubleshooting
+No setup needed! The service starts with all dependencies configured.
 
-- **View Logs:**
-  ```bash
-  docker-compose logs backend
-  ```
-- **Check Container Status:**
-  ```bash
-  docker-compose ps
-  ```
+## 📋 Features
 
-## Documentation & References
+- **RESTful API** with automatic OpenAPI/Swagger documentation
+- **JWT Authentication** with role-based access control
+- **Async PostgreSQL** integration with SQLAlchemy
+- **Structured logging** and error handling
+- **Health checks** and monitoring endpoints
+- **Auto-reload** in development mode
 
-For further API specifications, architectural details, and integration guidelines, please refer to the [Project Charter](#) and the additional documentation in the `docs/` submodule.
+## 🏗️ API Documentation
 
----
+### Interactive API Explorer
+Access the Swagger UI at: **http://localhost:8000/docs**
 
-Maintained by **team/random_iceberg**.
+### Main Endpoints
+
+#### Public
+- `GET /health` - Service health check
+- `POST /auth/signup` - User registration
+- `POST /auth/login` - User authentication (returns JWT token)
+- `POST /predict` - Get survival prediction
+- `GET /models` - List available ML models
+
+#### Protected (Requires Authentication)
+- `GET /predict/history` - View last 10 predictions
+
+#### Admin Only
+- `POST /models/train` - Train new model
+- `DELETE /models/{id}` - Delete specific model
+
+## 🛠️ Development Workflow
+
+## 🧪 Testing
+
+```bash
+cd app/backend
+
+# Install dependencies (if not already done)
+uv sync --no-cache --extra dev
+
+# Run tests
+uv run pytest
+
+# Run tests with coverage
+uv run pytest --cov=. --cov-report=html
+
+# Linting and formatting check
+uv run ruff check
+uv run ruff format --check
+
+# Auto-fix formatting
+uv run ruff format
+```
+
+## 📁 Project Structure
+
+```
+backend/
+├── main.py              # Application entry point
+├── routers/             # API route handlers
+│   ├── auth.py         # Authentication endpoints
+│   ├── models.py       # Model management
+│   └── prediction.py   # Prediction endpoints
+├── services/           # Business logic
+│   ├── prediction_service.py
+│   ├── model_service.py
+│   └── user_service.py
+├── db/                 # Database layer
+│   ├── schemas.py      # SQLAlchemy models
+│   └── helpers.py      # DB utilities
+├── models/             # Pydantic schemas
+└── tests/              # Test suite
+```
+
+## 🔧 Configuration (Optional)
+
+The service is pre-configured in Docker Compose. For local development:
+
+| Variable | Description | Docker Default |
+|----------|-------------|----------------|
+| `DB_USER` | Database user | `backend` |
+| `DB_DATABASE` | Database name | `backend` |
+| `DB_ADDRESS` | Database host | `postgres` |
+| `DB_PASSWORD` | Database password | Set in compose |
+| `JWT_SECRET_KEY` | JWT signing key | Set in compose |
+| `MODEL_SERVICE_URL` | Model service URL | `http://model:8000` |
+| `ALLOWED_ORIGINS` | CORS origins | `*` |
+
+## 📊 Database Management
+
+Use pgAdmin for database exploration:
+- URL: http://localhost:5050
+- Email: `team@random.iceberg`
+- Password: `Cheezus123`
+
+### Database Schema
+- `users` - User accounts and authentication
+- `prediction` - Prediction history
+- `model` - Trained model metadata
+- `feature` - Available ML features
+
+## 🔍 Testing the API
+
+### Using Swagger UI
+1. Go to http://localhost:8000/docs
+2. Try the `/health` endpoint first
+3. Use `/auth/signup` to create a user
+4. Use `/auth/login` to get a JWT token
+5. Click "Authorize" and paste the token
+6. Test protected endpoints
+
+### Using curl
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Sign up
+curl -X POST http://localhost:8000/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "password": "password123"}'
+
+# Login
+curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "password": "password123"}'
+```
+
+## 🐳 CI/CD Pipeline
+
+The GitLab CI pipeline automatically:
+- Runs tests on every commit
+- Checks code formatting with ruff
+- Builds Docker image
+- Pushes to registry (for main/dev branches)
+
+## 📚 Additional Resources
+
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [Project Requirements](../../docs/Project-Requirements.md)
+- [API Design Patterns](https://docs.anthropic.com/patterns/api-design)
