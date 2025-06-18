@@ -1,0 +1,9 @@
+# (Part of) configuration for local development
+services:
+  backend:
+  
+    build:
+      context: .
+      target: dev
+    volumes:
+      - .:/to_sync:ro

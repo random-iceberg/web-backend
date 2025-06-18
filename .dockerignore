@@ -1,0 +1,15 @@
+# Other
+output.json
+
+# Python
+.venv/
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+uv.lock
+
+# General
+.git
+tmp/
+.env
