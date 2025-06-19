@@ -67,3 +67,9 @@ class DeleteResponse(BaseModel):
 
     status: str
     message: str
+
+class ErrorResponse(BaseModel):
+    """Standardized error response schema for API endpoints"""
+    detail: str
+    code: str
+    timestamp: datetime
