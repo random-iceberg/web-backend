@@ -113,6 +113,15 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+
+    @app.middleware("http")
+    async def add_correlation_id(request: Request, call_next):
+        correlation_id = str(uuid.uuid4())
+        request.state.correlation_id = correlation_id
+        response = await call_next(request)
+        response.headers["X-Correlation-ID"] = correlation_id
+        return response
+    
     # logging middleware shifted here from models.py, Recommended by Lev
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
@@ -131,14 +140,6 @@ def create_app() -> FastAPI:
         logger.info(
             f"Response: {response.status_code} - Process Time: {process_time:.4f}s - Correlation ID: {correlation_id}"
         )
-        return response
-
-    @app.middleware("http")
-    async def add_correlation_id(request: Request, call_next):
-        correlation_id = str(uuid.uuid4())
-        request.state.correlation_id = correlation_id
-        response = await call_next(request)
-        response.headers["X-Correlation-ID"] = correlation_id
         return response
     
     # include routers (prediction & models)
