@@ -167,8 +167,9 @@ def create_app() -> FastAPI:
             content=ErrorResponse(
                 detail=exc.detail,
                 code="HTTP_ERROR",
-                timestamp=datetime.now(timezone.utc)
-            ).model_dump(),
+                timestamp=datetime.now(timezone.utc),
+                correlation_id=correlation_id
+            ).model_dump(mode='json'),
         )
 
     @app.exception_handler(Exception)
@@ -179,8 +180,9 @@ def create_app() -> FastAPI:
             content=ErrorResponse(
                 detail="An unexpected error occurred.",
                 code="INTERNAL_SERVER_ERROR",
-                timestamp=datetime.now(timezone.utc)
-            ).model_dump(),
+                timestamp=datetime.now(timezone.utc),
+                correlation_id = correlation_id
+            ).model_dump(mode='json'),
         )
 
     @app.exception_handler(RequestValidationError)
@@ -195,8 +197,9 @@ def create_app() -> FastAPI:
             content=ErrorResponse(
                 detail="Validation Error: " + ", ".join(field_errors),
                 code="VALIDATION_ERROR",
-                timestamp=datetime.now(timezone.utc)
-            ).model_dump(),
+                timestamp=datetime.now(timezone.utc),
+                correlation_id=correlation_id
+            ).model_dump(mode='json'),
         )
     return app
 
