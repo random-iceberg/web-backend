@@ -116,7 +116,7 @@ def create_app() -> FastAPI:
     # logging middleware shifted here from models.py, Recommended by Lev
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
-        correlation_id = request.state.correlation_id
+        correlation_id = getattr(request.state, "correlation_id", None)
         start_time = time.time()
         client_ip = request.headers.get("x-forwarded-for") or (
             request.client.host if request.client else "unknown"
@@ -161,6 +161,7 @@ def create_app() -> FastAPI:
     # Register exception handlers
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
+        correlation_id = getattr(request.state, "correlation_id", None)
         return JSONResponse(
             status_code=exc.status_code,
             content=ErrorResponse(
@@ -172,7 +173,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
-        correlation_id = request.state.correlation_id
+        correlation_id = getattr(request.state, "correlation_id", None)
         return JSONResponse(
             status_code=500,
             content=ErrorResponse(
@@ -184,6 +185,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        correlation_id = getattr(request.state, "correlation_id", None)
         errors = exc.errors()
         field_errors = [
             f"{error['loc'][1]}: {error['msg']}" for error in errors
