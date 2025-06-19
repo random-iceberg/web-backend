@@ -85,8 +85,3 @@ class User(Base):
     def __repr__(self) -> str:
         return f"User(id={self.id!r}, email={self.email!r}, role={self.role!r})"
 
-class ErrorResponse(Base):
-    """Standardized error response schema for database-related operations"""
-    detail: str
-    code: str
-    timestamp: datetime
