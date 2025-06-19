@@ -166,7 +166,7 @@ def create_app() -> FastAPI:
             status_code=exc.status_code,
             content=ErrorResponse(
                 detail=exc.detail,
-                code="HTTP_ERROR",
+                code=f"ERR_{exc.status_code}",
                 timestamp=datetime.now(timezone.utc),
                 correlation_id=correlation_id
             ).model_dump(mode='json'),
@@ -179,7 +179,7 @@ def create_app() -> FastAPI:
             status_code=500,
             content=ErrorResponse(
                 detail="An unexpected error occurred.",
-                code="INTERNAL_SERVER_ERROR",
+                code="ERR_500",
                 timestamp=datetime.now(timezone.utc),
                 correlation_id = correlation_id
             ).model_dump(mode='json'),
@@ -196,7 +196,7 @@ def create_app() -> FastAPI:
             status_code=422,
             content=ErrorResponse(
                 detail="Validation Error: " + ", ".join(field_errors),
-                code="VALIDATION_ERROR",
+                code="ERR_422",
                 timestamp=datetime.now(timezone.utc),
                 correlation_id=correlation_id
             ).model_dump(mode='json'),
