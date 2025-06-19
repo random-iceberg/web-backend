@@ -1,17 +1,20 @@
 import logging
 import time
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from os import environ
 
 from asyncpg.exceptions import InvalidPasswordError
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy.ext.asyncio import create_async_engine
 
 import db
 from routers import auth, models, prediction
 from services import user_service
+from models.schemas import ErrorResponse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -145,6 +148,43 @@ def create_app() -> FastAPI:
     async def root_redirect():
         return RedirectResponse(url="/docs")
 
+    # Register exception handlers
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=ErrorResponse(
+                detail=exc.detail,
+                code="HTTP_ERROR",
+                timestamp=datetime.utcnow()
+            ).model_dump(),
+        )
+
+    @app.exception_handler(Exception)
+    async def generic_exception_handler(request: Request, exc: Exception):
+        return JSONResponse(
+            status_code=500,
+            content=ErrorResponse(
+                detail="An unexpected error occurred.",
+                code="INTERNAL_SERVER_ERROR",
+                timestamp=datetime.now(timezone.utc)
+            ).model_dump(),
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        errors = exc.errors()
+        field_errors = [
+            f"{error['loc'][1]}: {error['msg']}" for error in errors
+        ]
+        return JSONResponse(
+            status_code=422,
+            content=ErrorResponse(
+                detail="Validation Error: " + ", ".join(field_errors),
+                code="VALIDATION_ERROR",
+                timestamp=datetime.now(timezone.utc)
+            ).model_dump(),
+        )
     return app
 
 
