@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from os import environ
+import uuid
 
 from asyncpg.exceptions import InvalidPasswordError
 from fastapi import FastAPI, Request, HTTPException
@@ -115,6 +116,7 @@ def create_app() -> FastAPI:
     # logging middleware shifted here from models.py, Recommended by Lev
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
+        correlation_id = request.state.correlation_id
         start_time = time.time()
         client_ip = request.headers.get("x-forwarded-for") or (
             request.client.host if request.client else "unknown"
@@ -131,6 +133,14 @@ def create_app() -> FastAPI:
         )
         return response
 
+    @app.middleware("http")
+    async def add_correlation_id(request: Request, call_next):
+        correlation_id = str(uuid.uuid4())
+        request.state.correlation_id = correlation_id
+        response = await call_next(request)
+        response.headers["X-Correlation-ID"] = correlation_id
+        return response
+    
     # include routers (prediction & models)
     app.include_router(prediction.router, prefix="/predict", tags=["Prediction"])
     app.include_router(models.router, prefix="/models", tags=["Model Management"])
@@ -156,12 +166,13 @@ def create_app() -> FastAPI:
             content=ErrorResponse(
                 detail=exc.detail,
                 code="HTTP_ERROR",
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             ).model_dump(),
         )
 
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
+        correlation_id = request.state.correlation_id
         return JSONResponse(
             status_code=500,
             content=ErrorResponse(
