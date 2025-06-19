@@ -122,14 +122,14 @@ def create_app() -> FastAPI:
             request.client.host if request.client else "unknown"
         )
         logger.info(
-            f"Request: {request.method} {request.url.path} - Client: {client_ip}"
+            f"Request: {request.method} {request.url.path} - Client: {client_ip} - Correlation ID: {correlation_id}"
         )
 
         response = await call_next(request)
 
         process_time = time.time() - start_time
         logger.info(
-            f"Response: {response.status_code} - Process Time: {process_time:.4f}s"
+            f"Response: {response.status_code} - Process Time: {process_time:.4f}s - Correlation ID: {correlation_id}"
         )
         return response
 
