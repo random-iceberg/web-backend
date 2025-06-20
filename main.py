@@ -142,6 +142,14 @@ def create_app() -> FastAPI:
         )
         return response
     
+    @app.middleware("http")
+    async def ensure_correlation_id(request: Request, call_next):
+        response = await call_next(request)
+        if "X-Correlation-ID" not in response.headers:
+            correlation_id = getattr(request.state, "correlation_id", str(uuid.uuid4()))
+            response.headers["X-Correlation-ID"] = correlation_id
+        return response
+    
     # include routers (prediction & models)
     app.include_router(prediction.router, prefix="/predict", tags=["Prediction"])
     app.include_router(models.router, prefix="/models", tags=["Model Management"])
