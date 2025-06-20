@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.future import select
 
 from db.schemas import User
@@ -11,13 +11,22 @@ from db.schemas import User
 logger = logging.getLogger(__name__)
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+# Use HTTPBearer for simple Bearer token authentication
+http_bearer = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    token: Annotated[Optional[str], Depends(oauth2_scheme)], request: Request
+    credentials: Annotated[
+        Optional[HTTPAuthorizationCredentials], Depends(http_bearer)
+    ],
+    request: Request,
 ) -> Optional[User]:
-    if token is None:
+    if credentials is None:
+        logger.debug("No credentials provided.")
+        return None
+
+    token = credentials.credentials
+    if not token:
         logger.debug("No token provided.")
         return None
 

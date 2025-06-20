@@ -37,6 +37,8 @@ async def predict_passenger_survival(
         HTTPException 400: Bad request with descriptive error message.
         HTTPException 500: Internal server error.
     """
+    correlation_id = getattr(request.state, "correlation_id", None)
+
     try:
         async_session = request.state.async_session  # This is a factory
         async with async_session() as db_session:  # Create a session instance
@@ -46,12 +48,20 @@ async def predict_passenger_survival(
     except ValueError as ve:
         # Service layer threw validation error
         logger.warning("Validation error during prediction", exc_info=ve)
-        raise HTTPException(status_code=400, detail=str(ve))
+        raise HTTPException(
+            status_code=400,
+            detail=str(ve),
+            headers={"X-Correlation-ID": correlation_id},
+        )
 
     except Exception as exc:
         # Unexpected errors
         logger.error("Error during prediction", exc_info=exc)
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal Server Error",
+            headers={"X-Correlation-ID": correlation_id},
+        )
 
 
 class PredictionHistory(BaseModel):
@@ -73,6 +83,8 @@ async def get_prediction_history(request: Request):
         List[PredictionHistory]: A list of prediction records containing timestamp,
                                input parameters and prediction results.
     """
+    correlation_id = getattr(request.state, "correlation_id", None)
+
     try:
         async_session = request.state.async_session
         async with async_session() as session:
@@ -93,4 +105,5 @@ async def get_prediction_history(request: Request):
         raise HTTPException(
             status_code=500,
             detail=f"Database error occurred while fetching history: {str(e)}",
+            headers={"X-Correlation-ID": correlation_id},
         )
