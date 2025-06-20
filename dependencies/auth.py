@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.future import select
 
 from db.schemas import User
@@ -16,13 +16,15 @@ http_bearer = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: Annotated[Optional[HTTPAuthorizationCredentials], Depends(http_bearer)], 
-    request: Request
+    credentials: Annotated[
+        Optional[HTTPAuthorizationCredentials], Depends(http_bearer)
+    ],
+    request: Request,
 ) -> Optional[User]:
     if credentials is None:
         logger.debug("No credentials provided.")
         return None
-    
+
     token = credentials.credentials
     if not token:
         logger.debug("No token provided.")

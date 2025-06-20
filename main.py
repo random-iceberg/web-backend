@@ -1,22 +1,22 @@
 import logging
 import time
-from datetime import datetime, timezone
-from contextlib import asynccontextmanager
-from os import environ
 import uuid
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from os import environ
 
 from asyncpg.exceptions import InvalidPasswordError
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import create_async_engine
 
 import db
+from models.schemas import ErrorResponse
 from routers import auth, models, prediction
 from services import user_service
-from models.schemas import ErrorResponse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -114,7 +114,6 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-
     @app.middleware("http")
     async def add_correlation_id(request: Request, call_next):
         correlation_id = str(uuid.uuid4())
@@ -122,7 +121,7 @@ def create_app() -> FastAPI:
         response = await call_next(request)
         response.headers["X-Correlation-ID"] = correlation_id
         return response
-    
+
     # logging middleware shifted here from models.py, Recommended by Lev
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
@@ -142,7 +141,7 @@ def create_app() -> FastAPI:
             f"Response: {response.status_code} - Process Time: {process_time:.4f}s - Correlation ID: {correlation_id}"
         )
         return response
-    
+
     @app.middleware("http")
     async def ensure_correlation_id(request: Request, call_next):
         response = await call_next(request)
@@ -150,7 +149,7 @@ def create_app() -> FastAPI:
             correlation_id = getattr(request.state, "correlation_id", str(uuid.uuid4()))
             response.headers["X-Correlation-ID"] = correlation_id
         return response
-    
+
     # include routers (prediction & models)
     app.include_router(prediction.router, prefix="/predict", tags=["Prediction"])
     app.include_router(models.router, prefix="/models", tags=["Model Management"])
@@ -178,8 +177,8 @@ def create_app() -> FastAPI:
                 detail=exc.detail,
                 code=f"ERR_{exc.status_code}",
                 timestamp=datetime.now(timezone.utc),
-                correlation_id=correlation_id
-            ).model_dump(mode='json'),
+                correlation_id=correlation_id,
+            ).model_dump(mode="json"),
         )
 
     @app.exception_handler(Exception)
@@ -191,26 +190,27 @@ def create_app() -> FastAPI:
                 detail="An unexpected error occurred.",
                 code="ERR_500",
                 timestamp=datetime.now(timezone.utc),
-                correlation_id = correlation_id
-            ).model_dump(mode='json'),
+                correlation_id=correlation_id,
+            ).model_dump(mode="json"),
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ):
         correlation_id = getattr(request.state, "correlation_id", None)
         errors = exc.errors()
-        field_errors = [
-            f"{error['loc'][1]}: {error['msg']}" for error in errors
-        ]
+        field_errors = [f"{error['loc'][1]}: {error['msg']}" for error in errors]
         return JSONResponse(
             status_code=422,
             content=ErrorResponse(
                 detail="Validation Error: " + ", ".join(field_errors),
                 code="ERR_422",
                 timestamp=datetime.now(timezone.utc),
-                correlation_id=correlation_id
-            ).model_dump(mode='json'),
+                correlation_id=correlation_id,
+            ).model_dump(mode="json"),
         )
+
     return app
 
 
@@ -220,7 +220,7 @@ def custom_openapi():
     """
     if app.openapi_schema:
         return app.openapi_schema
-    
+
     openapi_schema = get_openapi(
         title=app.title,
         version=app.version,
@@ -228,20 +228,20 @@ def custom_openapi():
         routes=app.routes,
         tags=app.openapi_tags,
     )
-    
+
     # Define the Bearer security scheme
     openapi_schema["components"]["securitySchemes"] = {
         "bearerAuth": {
             "type": "http",
             "scheme": "bearer",
             "bearerFormat": "JWT",
-            "description": "Enter the JWT token obtained from /auth/login"
+            "description": "Enter the JWT token obtained from /auth/login",
         }
     }
-    
+
     # Apply security globally (optional - you can also apply per-route)
     openapi_schema["security"] = [{"bearerAuth": []}]
-    
+
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
