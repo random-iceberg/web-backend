@@ -248,4 +248,4 @@ def custom_openapi():
 
 # Instantiate the application
 app = create_app()
-app.openapi = custom_openapi
+# app.openapi = custom_openapi
