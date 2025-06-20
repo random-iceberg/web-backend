@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.openapi.utils import get_openapi
 from sqlalchemy.ext.asyncio import create_async_engine
 
 import db
@@ -213,5 +214,38 @@ def create_app() -> FastAPI:
     return app
 
 
+def custom_openapi():
+    """
+    Custom OpenAPI schema to configure Bearer authentication in Swagger UI.
+    """
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+        tags=app.openapi_tags,
+    )
+    
+    # Define the Bearer security scheme
+    openapi_schema["components"]["securitySchemes"] = {
+        "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Enter the JWT token obtained from /auth/login"
+        }
+    }
+    
+    # Apply security globally (optional - you can also apply per-route)
+    openapi_schema["security"] = [{"bearerAuth": []}]
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
 # Instantiate the application
 app = create_app()
+app.openapi = custom_openapi
