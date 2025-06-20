@@ -68,15 +68,13 @@ class DeleteResponse(BaseModel):
     status: str
     message: str
 
+
 class ErrorResponse(BaseModel):
     """Standardized error response schema for API endpoints"""
+
     detail: str
     code: str
     timestamp: datetime
     correlation_id: str
 
-    model_config = {
-        "json_encoders": {
-            datetime: lambda v: v.isoformat()
-        }
-    }
+    model_config = {"json_encoders": {datetime: lambda v: v.isoformat()}}

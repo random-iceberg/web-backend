@@ -35,7 +35,9 @@ async def list_models(
     except Exception as exc:
         logger.error(f"Failed to retrieve models: {exc}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve models: {str(exc)}", headers={"X-Correlation-ID": correlation_id}
+            status_code=500,
+            detail=f"Failed to retrieve models: {str(exc)}",
+            headers={"X-Correlation-ID": correlation_id},
         )
 
 
@@ -63,10 +65,16 @@ async def train_model(
         )
         return response
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc), headers={"X-Correlation-ID": correlation_id})
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+            headers={"X-Correlation-ID": correlation_id},
+        )
     except Exception as exc:
         raise HTTPException(
-            status_code=500, detail=f"Failed to start model training: {str(exc)}", headers={"X-Correlation-ID": correlation_id}
+            status_code=500,
+            detail=f"Failed to start model training: {str(exc)}",
+            headers={"X-Correlation-ID": correlation_id},
         )
 
 
@@ -91,8 +99,14 @@ async def remove_model(
         response = await delete_model(request.state.async_session, model_id)
         return response
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc), headers={"X-Correlation-ID": correlation_id})
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+            headers={"X-Correlation-ID": correlation_id},
+        )
     except Exception as exc:
         raise HTTPException(
-            status_code=500, detail=f"Failed to delete model: {str(exc)}", headers={"X-Correlation-ID": correlation_id}
+            status_code=500,
+            detail=f"Failed to delete model: {str(exc)}",
+            headers={"X-Correlation-ID": correlation_id},
         )
