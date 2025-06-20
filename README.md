@@ -44,6 +44,27 @@ Access the Swagger UI at: **http://localhost:8000/docs**
 - `POST /models/train` - Train new model
 - `DELETE /models/{id}` - Delete specific model
 
+## 🛑 Error Handling & Correlation IDs
+
+All error responses follow a consistent JSON structure and include a correlation ID for traceability.
+
+**Example error response:**
+```json
+{
+  "detail": "Validation Error: age: Input should be greater than 0",
+  "code": "ERR_422",
+  "timestamp": "2025-06-19T13:33:50.088798+00:00",
+  "correlation_id": "edc76065-6828-41be-80e0-2cf49587061e"
+}
+```
+
+- `detail`: Human-readable error message.
+- `code`: Machine-readable error code (e.g., `ERR_400`, `ERR_404`, `ERR_422`, `ERR_500`).
+- `timestamp`: ISO 8601 UTC timestamp of the error.
+- `correlation_id`: Unique ID for tracing the request across logs and responses.
+
+**All responses (including errors) include an `X-Correlation-ID` header.**
+
 ## 🛠️ Development Workflow
 
 ## 🧪 Testing
