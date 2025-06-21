@@ -5,7 +5,7 @@ from typing import Dict
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.schemas import Prediction
+from db.schemas import Prediction, User
 from models.schemas import PassengerData, PredictionResult
 
 # TODO: remove httpx, do over the network container yapping #
@@ -14,7 +14,7 @@ MODEL_SERVICE_API = ""
 
 
 async def predict_survival(
-    data: PassengerData, db_session: AsyncSession, model_id: str | None = None
+    data: PassengerData, db_session: AsyncSession, current_user: User | None = None
 ) -> PredictionResult:
     """
     Main entry for predicting survival and storing the result:
@@ -43,7 +43,10 @@ async def predict_survival(
 
     # Store prediction in database
     new_prediction = Prediction(
-        input_data=data.model_dump(), result=result.model_dump()
+        input_data=data.model_dump(),
+        result=result.model_dump(),
+        # This is the line that fixes the entire problem
+        user_id=current_user.id if current_user else None,
     )
     db_session.add(new_prediction)
     await db_session.commit()
