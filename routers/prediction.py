@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from sqlalchemy import desc, select
 from sqlalchemy.exc import SQLAlchemyError
 
-# Corrected imports to include User and the get_current_user dependency
 from db.schemas import Prediction, User
 from dependencies.auth import AnyRole, get_current_user
 from models.schemas import PassengerData, PredictionResult
@@ -24,7 +23,6 @@ async def predict_passenger_survival(
     data: PassengerData,
     request: Request,
     role: AnyRole,
-    # This is the key change: Add dependency to get the current user.
     current_user: Annotated[User | None, Depends(get_current_user)],
 ) -> PredictionResult:
     """
