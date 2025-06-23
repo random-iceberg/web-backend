@@ -10,22 +10,20 @@ class PassengerData(BaseModel):
     - Define passenger fields (e.g., pclass, age, sex, etc.)"
     """
 
-    age: float | None = Field(..., gt=0, description="Passenger's age")
-    sibsp: int | None = Field(
-        ..., ge=0, description="Number of siblings/spouses aboard"
+    age: float = Field(..., gt=0, description="Passenger's age")
+    sibsp: int = Field(..., ge=0, description="Number of siblings/spouses aboard")
+    parch: int = Field(..., ge=0, description="Number of parents/children aboard")
+    fare: float | None = Field(None, ge=0, le=500, description="Ticket fare")
+    title: Literal["Master", "Miss", "Mr", "Mrs", "Rare"] | None = Field(
+        None, description="Passenger title"
     )
-    parch: int | None = Field(
-        ..., ge=0, description="Number of parents/children aboard"
-    )
-    fare: float | None = Field(..., ge=0, le=500)
-    title: Literal["Master", "Miss", "Mr", "Mrs", "Rare"] | None
-    passengerClass: Literal[1, 2, 3] | None = Field(
+    passengerClass: Literal[1, 2, 3] = Field(
         ..., description="Class of the ticket (1st, 2nd, 3rd)"
     )
-    sex: Literal["male", "female"] | None
+    sex: Literal["male", "female"]
     embarkationPort: Literal["C", "Q", "S"]
-    wereAlone: bool | None
-    cabinKnown: bool | None
+    wereAlone: bool
+    cabinKnown: bool
 
 
 class PredictionResult(BaseModel):
