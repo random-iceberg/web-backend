@@ -67,8 +67,12 @@ async def test_predict_success(client: TestClient):
     )
 
     data = response.json()
-    assert "survived" in data, "Response missing 'survived' field"
-    assert "probability" in data, "Response missing 'probability' field"
+    assert "mock-model-id" in data, "Response missing model ID"
+    model_result = data["mock-model-id"]
+    assert "survived" in model_result, "Model result missing 'survived' field"
+    assert "probability" in model_result, "Model result missing 'probability' field"
+    assert isinstance(model_result["survived"], bool)
+    assert 0 <= model_result["probability"] <= 1
 
 
 async def test_get_prediction_history_empty(client: TestClient):
