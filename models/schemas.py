@@ -20,6 +20,7 @@ class PassengerData(BaseModel):
     embarkationPort: Literal["C", "Q", "S"]
     wereAlone: bool
     cabinKnown: bool
+    model_ids: list[str] | None = None
 
 
 class PredictionResult(BaseModel):

@@ -14,7 +14,7 @@ MODEL_SERVICE_API = ""
 
 
 async def predict_survival(
-    data: PassengerData, db_session: AsyncSession, model_id: str | None = None
+    data: PassengerData, db_session: AsyncSession, model_ids: list[str] | None = None
 ) -> PredictionResult:
     """
     Main entry for predicting survival and storing the result:
@@ -25,18 +25,28 @@ async def predict_survival(
     """
     MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
 
-    async with httpx.AsyncClient() as client:
-        models_response = await client.get(f"{MODEL_SERVICE_URL}/models/")
-        models_response.raise_for_status()
-        model_id = models_response.json()[0][
-            "id"
-        ]  # TODO: change how model_id is determined
+    selected_model_id: str | None = None
+    if model_ids:
+        selected_model_id = model_ids[0]  # Use the first selected model ID
+    else:
+        # If no model_ids provided, fetch all models and use the first one (existing behavior)
+        async with httpx.AsyncClient() as client:
+            models_response = await client.get(f"{MODEL_SERVICE_URL}/models/")
+            models_response.raise_for_status()
+            all_models = models_response.json()
+            if all_models:
+                selected_model_id = all_models[0]["id"]
+            else:
+                raise ValueError("No models available for prediction.")
+
+    if not selected_model_id:
+        raise ValueError("No model selected or available for prediction.")
 
     # Domain-specific validation (beyond Pydantic)
     await _validate_passenger_data(data)
 
     # Perform inference
-    response: float = await _inference_model_call(data, db_session, model_id)
+    response: float = await _inference_model_call(data, db_session, selected_model_id)
 
     # Format into PredictionResult
     result: PredictionResult = _format_prediction_result(response)

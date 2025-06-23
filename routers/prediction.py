@@ -23,6 +23,13 @@ async def predict_passenger_survival(
     request: Request,
     role: AnyRole,
 ) -> PredictionResult:
+    # Ensure model_ids is not empty if provided
+    if data.model_ids is not None and not data.model_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="If 'model_ids' is provided, it cannot be an empty list.",
+            headers={"X-Correlation-ID": getattr(request.state, "correlation_id", None)},
+        )
     """
     Endpoint to predict the survival of a Titanic passenger.
 
@@ -42,7 +49,7 @@ async def predict_passenger_survival(
     try:
         async_session = request.state.async_session  # This is a factory
         async with async_session() as db_session:  # Create a session instance
-            result = await predict_survival(data, db_session)
+            result = await predict_survival(data, db_session, data.model_ids)
             return result
 
     except ValueError as ve:
