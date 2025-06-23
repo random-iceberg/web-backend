@@ -66,12 +66,6 @@ async def _validate_passenger_data(data: PassengerData) -> None:
     if data.age < 0 or data.age >= 120:
         raise ValueError("Invalid age: must be between 0 and 120.")
 
-    if not isinstance(data.fare, (int, float)):
-        raise ValueError("Invalid fare: must be a number.")
-
-    if data.fare < 0:
-        raise ValueError("Invalid fare: must be non-negative.")
-
     if not isinstance(data.sibsp, int) or data.sibsp < 0:
         raise ValueError("Invalid sibsp: must be a non-negative integer.")
 
@@ -86,9 +80,6 @@ async def _validate_passenger_data(data: PassengerData) -> None:
 
     if not isinstance(data.cabinKnown, bool):
         raise ValueError("Invalid cabinKnown: must be a boolean.")
-
-    if data.title and not isinstance(data.title, str):
-        raise ValueError("Invalid title: must be a string if provided.")
 
     return None
 
@@ -111,7 +102,7 @@ async def _inference_model_call(
             "fare": data.fare,
             "travelled_alone": data.wereAlone,
             "embarked": embarked_mapping[data.embarkationPort],
-            "title": data.title[0].lower() + data.title[1:] if data.title else "",
+            "title": data.title[0].lower() + data.title[1:] if data.title else None,
             "cabin_known": data.cabinKnown,
             "sibsp": data.sibsp,
             "parch": data.parch,
