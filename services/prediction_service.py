@@ -28,13 +28,11 @@ async def predict_survival(
     async with httpx.AsyncClient() as client:
         models_response = await client.get(f"{MODEL_SERVICE_URL}/models/")
         models_response.raise_for_status()
-        model_id = models_response.json()[0][
-            "id"
-        ]  
-        # TODO: change how model_id is determined. 
-        # But to what? 
-            # Do logged in users have the option to choose a model now? 
-            # Non-logged in users get some default model? Which one? 
+        model_id = models_response.json()[0]["id"]
+        # TODO: change how model_id is determined.
+        # But to what?
+        # Do logged in users have the option to choose a model now?
+        # Non-logged in users get some default model? Which one?
 
     # Domain-specific validation (beyond Pydantic)
     await _validate_passenger_data(data)
@@ -99,8 +97,8 @@ async def _inference_model_call(
     data: PassengerData, db_session: AsyncSession, model_id: str
 ) -> Dict:
     """
-    Prepares the data received from the frontend to match how the model-backend expects it. 
-    Returns whether the person survived or not, and with what probability. 
+    Prepares the data received from the frontend to match how the model-backend expects it.
+    Returns whether the person survived or not, and with what probability.
     """
     MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
 
