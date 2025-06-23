@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Dict, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, RootModel
 
 
 class PassengerData(BaseModel):
@@ -31,6 +31,14 @@ class PredictionResult(BaseModel):
 
     survived: bool = Field(..., description="True if the passenger survived")
     probability: float = Field(..., description="Survival probability between 0 and 1")
+
+
+class MultiModelPredictionResult(RootModel[Dict[str, Union[PredictionResult, Dict[str, str]]]]):
+    """
+    Data model for aggregated prediction results from multiple models.
+    Maps model_id to its PredictionResult or an error message.
+    """
+    pass
 
 
 class ModelBase(BaseModel):
