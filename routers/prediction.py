@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from db.schemas import Prediction
 from dependencies.auth import AnyRole
-from models.schemas import PassengerData, PredictionResult, MultiModelPredictionResult
+from models.schemas import MultiModelPredictionResult, PassengerData, PredictionResult
 from services.prediction_service import predict_survival
 
 # Configure module-level logger
