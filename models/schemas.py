@@ -37,11 +37,14 @@ class PredictionResult(BaseModel):
     probability: float = Field(..., description="Survival probability between 0 and 1")
 
 
-class MultiModelPredictionResult(RootModel[Dict[str, Union[PredictionResult, Dict[str, str]]]]):
+class MultiModelPredictionResult(
+    RootModel[Dict[str, Union[PredictionResult, Dict[str, str]]]]
+):
     """
     Data model for aggregated prediction results from multiple models.
     Maps model_id to its PredictionResult or an error message.
     """
+
     pass
 
 

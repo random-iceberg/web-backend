@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/", response_model=MultiModelPredictionResult, summary="Predict Titanic Survival")
+@router.post(
+    "/", response_model=MultiModelPredictionResult, summary="Predict Titanic Survival"
+)
 async def predict_passenger_survival(
     data: PassengerData,
     request: Request,
@@ -28,7 +30,9 @@ async def predict_passenger_survival(
         raise HTTPException(
             status_code=400,
             detail="If 'model_ids' is provided, it cannot be an empty list.",
-            headers={"X-Correlation-ID": getattr(request.state, "correlation_id", None)},
+            headers={
+                "X-Correlation-ID": getattr(request.state, "correlation_id", None)
+            },
         )
     """
     Endpoint to predict the survival of a Titanic passenger.
