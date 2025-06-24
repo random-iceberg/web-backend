@@ -227,26 +227,55 @@ async def _process_training_results(
     """Process and store training results."""
     model_info = training_result.get("info", {})
     accuracy = model_info.get("accuracy")
+    features_used = model_info.get("features", [])
 
-    if accuracy is not None:
-        async with async_session() as session:
-            stmt = select(db.Model).where(db.Model.uuid == model_id)
-            result = await session.scalars(stmt)
-            model_db_instance = result.one_or_none()
+    async with async_session() as session:
+        stmt = select(db.Model).where(db.Model.uuid == model_id)
+        result = await session.scalars(stmt)
+        model_db_instance = result.one_or_none()
 
-            if model_db_instance:
+        if model_db_instance:
+            if accuracy is not None:
                 model_db_instance.accuracy = accuracy
-                await session.commit()
                 logger.info(
                     f"Training completed for model {model_id} with accuracy: {accuracy}"
                 )
             else:
-                logger.error(f"Model {model_id} not found in DB after training")
-    else:
-        logger.warning(
-            f"Model service did not return accuracy for model {model_id}. "
-            f"Response: {training_result}"
-        )
+                logger.warning(
+                    f"Model service did not return accuracy for model {model_id}. "
+                    f"Response: {training_result}"
+                )
+
+            if features_used:
+                # Feature Featching
+                existing_features_stmt = select(db.Feature).where(
+                    db.Feature.name.in_(features_used)
+                )
+                existing_features = (await session.scalars(existing_features_stmt)).all()
+                existing_feature_names = {f.name for f in existing_features}
+
+                new_features = [
+                    db.Feature(name=f_name)
+                    for f_name in features_used
+                    if f_name not in existing_feature_names
+                ]
+                session.add_all(new_features)
+                await session.flush()
+
+                # Feature Linking
+                model_db_instance.features = existing_features + new_features
+                logger.info(
+                    f"Updated features for model {model_id}: {features_used}"
+                )
+            else:
+                logger.warning(
+                    f"Model service did not return features for model {model_id}. "
+                    f"Response: {training_result}"
+                )
+
+            await session.commit()
+        else:
+            logger.error(f"Model {model_id} not found in DB after training")
 
 
 async def _update_model_status(
