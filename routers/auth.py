@@ -1,12 +1,12 @@
 import logging
-from datetime import datetime, timedelta, timezone
 
-import jwt
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel
 
 from db.schemas import User
-from services.user_service import authenticate_user, create_user
+from dependencies.auth import CurrentUser
+from dependencies.state import RequestState
+from services.user_service import authenticate_user, create_user, mk_jwt_token
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -29,7 +29,11 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     message: str = "Login successful."
-    access_token: str
+
+
+class InfoResponse(BaseModel):
+    email: str | None
+    role: str
 
 
 @router.post("/signup", summary="Register a new user")
@@ -49,28 +53,40 @@ async def signup(data: SignupRequest, request: Request) -> SignupResponse:
         return SignupResponse(email=user.email)
 
 
-@router.post("/login", summary="Authenticate an existing user")
-async def login(data: LoginRequest, request: Request) -> LoginResponse:
+@router.post("/login", summary="Generate an access token")
+async def login(
+    data: LoginRequest, state: RequestState, response: Response
+) -> LoginResponse:
     """
     Verify user credentials and return a JWT token.
-
-    Args:
-        data (LoginRequest): Email and password
-        request (Request): HTTP request object containing async_session
-
-    Returns:
-        dict: Success message, JWT access token
     """
-    async with (
-        request.state.async_session() as session
-    ):  # TODO: (Question) should the async_session be started here?
+
+    async with state.async_session() as session:
         user: User = await authenticate_user(session, data.email, data.password)
 
-        payload = {
-            "sub": str(user.id),
-            "exp": datetime.now(timezone.utc) + timedelta(hours=1),
-            "role": user.role,
-        }
+    token = mk_jwt_token(user=user, jwt_key=state.jwt_key)
 
-        token = jwt.encode(payload, request.state.jwt_key, algorithm="HS256")
-        return LoginResponse(access_token=token)
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        # max_age=max_age.seconds, session cookie for now
+        httponly=True,
+        samesite="strict",
+    )
+    return LoginResponse()
+
+
+@router.post("/logout")
+async def logout(response: Response) -> None:
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        samesite="strict",
+    )
+
+
+@router.get("/me_myself_and_I", summary="Get user info")
+async def get_info(user: CurrentUser) -> InfoResponse:
+    if user is None:
+        return InfoResponse(email=None, role="anon")
+    return InfoResponse(email=user.email, role=user.role)
