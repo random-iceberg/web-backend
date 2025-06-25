@@ -120,7 +120,7 @@ async def test_get_prediction_history(client: TestClient, user_id: str):
     assert isinstance(data, list)
     assert len(data) == 3
 
-async test_get_prediction_history_anonymous(client: TestClient):
+async def test_get_prediction_history_anonymous(client: TestClient):
     # Make prediction. #
     payload = {
         "passengerClass": 1,
@@ -148,7 +148,7 @@ async test_get_prediction_history_anonymous(client: TestClient):
     assert response.status_code == 200
     assert response.json() == []
 
-async test_assert_different_user_history(client: TestClient, user_id_one: str, user_id_two: str):
+async def test_assert_different_user_history(client: TestClient, user_id_one: str, user_id_two: str):
     headers_one = {"user_id":user_id_one}
     headers_two = {"user_id":user_id_two}
 
