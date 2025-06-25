@@ -66,6 +66,7 @@ async def admin_user_token(async_session_test: AsyncSession):
     token = jwt.encode(payload, jwt_secret_key, algorithm="HS256")
     return token
 
+
 @fixture()
 async def mk_user(async_session_test: AsyncSession):
     async def f(index):
@@ -73,9 +74,7 @@ async def mk_user(async_session_test: AsyncSession):
         password = "userpassword"
         jwt_secret_key = os.environ["JWT_SECRET_KEY"]
 
-        user = await create_user(
-            async_session_test, mail, password
-        )
+        user = await create_user(async_session_test, mail, password)
 
         payload = {
             "sub": str(user.id),
@@ -84,7 +83,9 @@ async def mk_user(async_session_test: AsyncSession):
         }
         token = jwt.encode(payload, jwt_secret_key, algorithm="HS256")
         return token
+
     return f
+
 
 @fixture()
 async def client(postgres_container: PostgresContainer, async_engine_test):

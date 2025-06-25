@@ -1,9 +1,7 @@
 from unittest.mock import AsyncMock, patch
+
 from fastapi.testclient import TestClient
 
-import os
-import jwt
-import datetime
 
 # Patch responses for model service HTTP requests
 def _mocked_model_list(*args, **kwargs):
@@ -72,6 +70,7 @@ async def test_predict_success(client: TestClient):
     assert "survived" in data, "Response missing 'survived' field"
     assert "probability" in data, "Response missing 'probability' field"
 
+
 async def test_get_prediction_history(client: TestClient, mk_user):
     """Test GET /predict/history endpoint with existing predictions"""
     # First, make a few predictions
@@ -105,6 +104,7 @@ async def test_get_prediction_history(client: TestClient, mk_user):
     assert isinstance(data, list)
     assert len(data) == 3
 
+
 async def test_get_prediction_history_anonymous(client: TestClient):
     # Make prediction. #
     payload = {
@@ -132,6 +132,7 @@ async def test_get_prediction_history_anonymous(client: TestClient):
     response = client.get("/predict/history")
     assert response.status_code == 200
     assert response.json() == []
+
 
 async def test_assert_different_user_history(client: TestClient, mk_user):
     user_id_one = await mk_user(1)
