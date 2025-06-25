@@ -1,7 +1,9 @@
 from unittest.mock import AsyncMock, patch
-
 from fastapi.testclient import TestClient
 
+import os
+import jwt
+import datetime
 
 # Patch responses for model service HTTP requests
 def _mocked_model_list(*args, **kwargs):
@@ -70,28 +72,11 @@ async def test_predict_success(client: TestClient):
     assert "survived" in data, "Response missing 'survived' field"
     assert "probability" in data, "Response missing 'probability' field"
 
-
-async def test_get_prediction_history_empty(client: TestClient):
-    """Test GET /predict/history endpoint when history is empty"""
-    with (
-        patch(
-            "httpx.AsyncClient.get", new=AsyncMock(side_effect=_mocked_model_list_async)
-        ),
-        patch(
-            "httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)
-        ),
-    ):
-        response = client.get("/predict/history")
-    assert response.status_code == 200
-
-    data = response.json()
-    assert isinstance(data, list)
-    assert len(data) == 0 
-
-async def test_get_prediction_history(client: TestClient, user_id: str):
+async def test_get_prediction_history(client: TestClient, mk_user):
     """Test GET /predict/history endpoint with existing predictions"""
     # First, make a few predictions
-    headers = {"user_id":user_id}
+    user_id = await mk_user(1)
+    headers = {"Authorization": f"Bearer {user_id}"}
 
     payload = {
         "passengerClass": 1,
@@ -112,9 +97,9 @@ async def test_get_prediction_history(client: TestClient, user_id: str):
         ),
     ):
         for _ in range(3):
-            client.post("/predict", json=payload, header=headers)
+            client.post("/predict", json=payload, headers=headers)
 
-        response = client.get("/predict/history")
+        response = client.get("/predict/history", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -148,9 +133,12 @@ async def test_get_prediction_history_anonymous(client: TestClient):
     assert response.status_code == 200
     assert response.json() == []
 
-async def test_assert_different_user_history(client: TestClient, user_id_one: str, user_id_two: str):
-    headers_one = {"user_id":user_id_one}
-    headers_two = {"user_id":user_id_two}
+async def test_assert_different_user_history(client: TestClient, mk_user):
+    user_id_one = await mk_user(1)
+    user_id_two = await mk_user(2)
+
+    headers_one = {"Authorization": f"Bearer {user_id_one}"}
+    headers_two = {"Authorization": f"Bearer {user_id_two}"}
 
     payload = {
         "passengerClass": 1,

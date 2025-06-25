@@ -33,7 +33,7 @@ def postgres_container():
 async def async_engine_test(postgres_container: PostgresContainer):
     """Fixture for async database engine for tests."""
     url = postgres_container.get_connection_url()
-    engine = create_async_engine(url, echo=True)
+    engine = create_async_engine(url, echo=False)
     yield engine
     await engine.dispose()
 
@@ -66,6 +66,25 @@ async def admin_user_token(async_session_test: AsyncSession):
     token = jwt.encode(payload, jwt_secret_key, algorithm="HS256")
     return token
 
+@fixture()
+async def mk_user(async_session_test: AsyncSession):
+    async def f(index):
+        mail = f"user{index}@example.com"
+        password = "userpassword"
+        jwt_secret_key = os.environ["JWT_SECRET_KEY"]
+
+        user = await create_user(
+            async_session_test, mail, password
+        )
+
+        payload = {
+            "sub": str(user.id),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+            "role": user.role,
+        }
+        token = jwt.encode(payload, jwt_secret_key, algorithm="HS256")
+        return token
+    return f
 
 @fixture()
 async def client(postgres_container: PostgresContainer, async_engine_test):
