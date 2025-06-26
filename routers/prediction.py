@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from db.schemas import Prediction
 from dependencies.auth import AnyRole
-from models.schemas import PassengerData, PredictionResult
+from models.schemas import MultiModelPredictionResult, PassengerData, PredictionResult
 from services.prediction_service import predict_survival
 
 # Configure module-level logger
@@ -17,12 +17,23 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/", response_model=PredictionResult, summary="Predict Titanic Survival")
+@router.post(
+    "/", response_model=MultiModelPredictionResult, summary="Predict Titanic Survival"
+)
 async def predict_passenger_survival(
     data: PassengerData,
     request: Request,
     role: AnyRole,
-) -> PredictionResult:
+) -> MultiModelPredictionResult:
+    # Ensure model_ids is not empty if provided
+    if data.model_ids is not None and not data.model_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="If 'model_ids' is provided, it cannot be an empty list.",
+            headers={
+                "X-Correlation-ID": getattr(request.state, "correlation_id", None)
+            },
+        )
     """
     Endpoint to predict the survival of a Titanic passenger.
 
@@ -42,8 +53,8 @@ async def predict_passenger_survival(
     try:
         async_session = request.state.async_session  # This is a factory
         async with async_session() as db_session:  # Create a session instance
-            result = await predict_survival(data, db_session)
-            return result
+            results = await predict_survival(data, db_session, data.model_ids)
+            return MultiModelPredictionResult.model_validate(results)
 
     except ValueError as ve:
         # Service layer threw validation error

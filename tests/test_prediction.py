@@ -47,9 +47,11 @@ async def test_predict_success(client: TestClient):
         "passengerClass": 3,
         "sex": "male",
         "age": 25,
+        "fare": 7.25,  # Added required field
         "sibsp": 0,
         "parch": 0,
         "embarkationPort": "S",
+        "title": "mr",  # Added required field
         "wereAlone": True,
         "cabinKnown": False,
     }
@@ -61,14 +63,21 @@ async def test_predict_success(client: TestClient):
             "httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)
         ),
     ):
-        response = client.post("/predict", json=payload)
+        response = client.post(
+            "/predict/", json=payload
+        )  # Use /predict/ to avoid redirect
     assert response.status_code == 200, (
         f"Expected status code 200, got {response.status_code}"
     )
 
     data = response.json()
-    assert "survived" in data, "Response missing 'survived' field"
-    assert "probability" in data, "Response missing 'probability' field"
+    # The response is now a MultiModelPredictionResult which is a dict
+    assert isinstance(data, dict), "Response should be a dictionary"
+    assert "mock-model-id" in data, "Response should contain the mock model ID"
+
+    model_result = data["mock-model-id"]
+    assert "survived" in model_result, "Model result missing 'survived' field"
+    assert "probability" in model_result, "Model result missing 'probability' field"
 
 
 async def test_get_prediction_history_empty(client: TestClient):
@@ -97,9 +106,11 @@ async def test_get_prediction_history(client: TestClient):
         "passengerClass": 1,
         "sex": "female",
         "age": 38,
+        "fare": 71.28,  # Added required field
         "sibsp": 1,
         "parch": 0,
         "embarkationPort": "C",
+        "title": "mrs",  # Added required field
         "wereAlone": False,
         "cabinKnown": True,
     }
@@ -112,7 +123,7 @@ async def test_get_prediction_history(client: TestClient):
         ),
     ):
         for _ in range(3):
-            client.post("/predict", json=payload)
+            client.post("/predict/", json=payload)  # Use /predict/ to avoid redirect
 
         response = client.get("/predict/history")
     assert response.status_code == 200
