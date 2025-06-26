@@ -36,12 +36,13 @@ class Model(Base):
     algorithm: M[str] = column()
     created_at: M[datetime] = column(server_default=func.now())
     accuracy: M[float | None] = column()
+    status: M[str] = column(default="training_in_progress")
 
     features: M[list["Feature"]] = relationship(secondary=model_feature_link)
 
     @override
     def __repr__(self) -> str:
-        return f"Model(uuid={self.uuid!r}, name={self.name!r}, algorithm={self.algorithm!r})"
+        return f"Model(uuid={self.uuid!r}, name={self.name!r}, algorithm={self.algorithm!r}, status={self.status!r})"
 
 
 class Feature(Base):
@@ -62,8 +63,8 @@ class Prediction(Base):
 
     id: M[int] = column(primary_key=True)
     created_at: M[datetime] = column(server_default=func.now())
-    input_data: M[dict] = column(JSON)  # Store PassengerData
-    result: M[dict] = column(JSON)  # Store PredictionResult
+    input_data: M[dict] = column(JSON)
+    result: M[dict] = column(JSON)
 
     @override
     def __repr__(self) -> str:
@@ -78,7 +79,7 @@ class User(Base):
     id: M[int] = column(primary_key=True, autoincrement=True)
     email: M[str] = column(unique=True, nullable=False)
     hashed_password: M[str] = column(nullable=False)
-    role: M[str] = column(default="user", nullable=False)  # Added role column
+    role: M[str] = column(default="user", nullable=False)
     created_at: M[datetime] = column(server_default=func.now())
 
     @override
