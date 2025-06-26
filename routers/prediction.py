@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from sqlalchemy import desc, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from dependencies.auth import has_role
 from db.schemas import Prediction, User
 from dependencies.auth import AnyRole, get_current_user
 from models.schemas import MultiModelPredictionResult, PassengerData, PredictionResult
@@ -86,7 +85,7 @@ async def get_prediction_history(
     Retrieves the 10 most recent predictions for the authenticated user.
     """
     correlation_id = getattr(request.state, "correlation_id", None)
-
+    
     if not current_user or current_user.role not in ["user", "admin"]:
         raise HTTPException(status_code=403, detail="Forbidden")
 
