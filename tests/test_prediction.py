@@ -82,18 +82,17 @@ async def test_predict_success(client: TestClient):
 
 async def test_get_prediction_history(client: TestClient, mk_user):
     """Test GET /predict/history endpoint with existing predictions"""
-    user = await mk_user(1) 
-    headers = {"Authorization": f"Bearer {user}"} 
+    # First, make a few predictions
+    user_id = await mk_user(1)
+    headers = {"Authorization": f"Bearer {user_id}"}
 
     payload = {
         "passengerClass": 1,
         "sex": "female",
         "age": 38,
-        "fare": 71.28, # You were missing fare and title in the original test
         "sibsp": 1,
         "parch": 0,
         "embarkationPort": "C",
-        "title": "mrs",
         "wereAlone": False,
         "cabinKnown": True,
     }
@@ -106,8 +105,7 @@ async def test_get_prediction_history(client: TestClient, mk_user):
         ),
     ):
         for _ in range(3):
-            # Use /predict/ with a trailing slash to avoid 307 redirect issues with TestClient
-            client.post("/predict/", json=payload, headers=headers)
+            client.post("/predict", json=payload, headers=headers)
 
         response = client.get("/predict/history", headers=headers)
     assert response.status_code == 200
@@ -148,21 +146,19 @@ async def test_get_prediction_history_anonymous(client: TestClient):
 
 
 async def test_assert_different_user_history(client: TestClient, mk_user):
-    user_one_token = await mk_user(1)
-    user_two_token = await mk_user(2)
+    user_id_one = await mk_user(1)
+    user_id_two = await mk_user(2)
 
-    headers_one = {"Authorization": f"Bearer {user_one_token}"}
-    headers_two = {"Authorization": f"Bearer {user_two_token}"}
+    headers_one = {"Authorization": f"Bearer {user_id_one}"}
+    headers_two = {"Authorization": f"Bearer {user_id_two}"}
 
     payload = {
         "passengerClass": 1,
         "sex": "female",
         "age": 38,
-        "fare": 71.28, # Added missing field
         "sibsp": 1,
         "parch": 0,
         "embarkationPort": "C",
-        "title": "mrs", # Added missing field
         "wereAlone": False,
         "cabinKnown": True,
     }
@@ -175,9 +171,9 @@ async def test_assert_different_user_history(client: TestClient, mk_user):
         ),
     ):
         for _ in range(3):
-            client.post("/predict/", json=payload, headers=headers_one) # Use trailing slash
+            client.post("/predict", json=payload, headers=headers_one)
         for _ in range(2):
-            client.post("/predict/", json=payload, headers=headers_two) # Use trailing slash
+            client.post("/predict", json=payload, headers=headers_two)
 
     response_one = client.get("/predict/history", headers=headers_one)
     assert response_one.status_code == 200
