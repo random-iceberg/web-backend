@@ -57,7 +57,9 @@ async def predict_survival(
     for i, model_id in enumerate(model_ids):
         prediction_response = predictions[i]
         if isinstance(prediction_response, Exception):
-            logger.error(f"Prediction failed for model {model_id}: {prediction_response}")
+            logger.error(
+                f"Prediction failed for model {model_id}: {prediction_response}"
+            )
             results[model_id] = {"error": str(prediction_response)}
         else:
             result: PredictionResult = _format_prediction_result(prediction_response)
@@ -68,7 +70,9 @@ async def predict_survival(
                     input_data=data.model_dump(), result=result.model_dump()
                 )
                 db_session.add(new_prediction)
-                await db_session.commit() # Committing after each prediction for now, considering batching
+                await (
+                    db_session.commit()
+                )  # Committing after each prediction for now, considering batching
 
     return results
 

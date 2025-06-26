@@ -62,9 +62,9 @@ async def test_predict_success(client: TestClient):
         ),
     ):
         response = client.post("/predict", json=payload)
-    assert response.status_code == 200, (
-        f"Expected status code 200, got {response.status_code}"
-    )
+    assert (
+        response.status_code == 200
+    ), f"Expected status code 200, got {response.status_code}"
 
     data = response.json()
     assert "survived" in data, "Response missing 'survived' field"
