@@ -134,13 +134,7 @@ async def test_get_prediction_history_anonymous(client: TestClient):
         ),
         patch(
             "httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)
-        ),hint: You have divergent branches and need to specify how to reconcile them.
-hint: You can do so by running one of the following commands sometime before
-hint: your next pull:
-hint: 
-hint:   git config pull.rebase false  # merge
-hint:   git config pull.rebase true   # rebase
-hint:   git config pull.ff only       # fast-forward only
+        ),
     ):
         for _ in range(3):
             client.post("/predict/", json=payload)  # Use /predict/ to avoid redirect
