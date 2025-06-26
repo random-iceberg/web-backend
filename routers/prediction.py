@@ -80,15 +80,15 @@ class PredictionHistory(BaseModel):
     summary="Get Recent Predictions",
 )
 async def get_prediction_history(
-    request: Request, current_user: Annotated[User | None, Depends(has_role(["user", "admin"]))]
+    request: Request, current_user: Annotated[User | None, Depends(get_current_user)]
 ):
     """
     Retrieves the 10 most recent predictions for the authenticated user.
     """
     correlation_id = getattr(request.state, "correlation_id", None)
 
-    if not current_user:
-        return []
+    if not current_user or current_user.role not in ["user", "admin"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     try:
         async_session = request.state.async_session

@@ -90,9 +90,11 @@ async def test_get_prediction_history(client: TestClient, mk_user):
         "passengerClass": 1,
         "sex": "female",
         "age": 38,
+        "fare": 71.28,  # Added required field
         "sibsp": 1,
         "parch": 0,
         "embarkationPort": "C",
+        "title": "mrs",  # Added required field
         "wereAlone": False,
         "cabinKnown": True,
     }
@@ -141,9 +143,7 @@ async def test_get_prediction_history_anonymous(client: TestClient):
 
     # Check if response was successful and if response of history is empty. #
     response = client.get("/predict/history")
-    assert response.status_code == 200
-    assert response.json() == []
-
+    assert response.status_code == 403
 
 async def test_assert_different_user_history(client: TestClient, mk_user):
     user_id_one = await mk_user(1)
@@ -156,9 +156,11 @@ async def test_assert_different_user_history(client: TestClient, mk_user):
         "passengerClass": 1,
         "sex": "female",
         "age": 38,
+        "fare": 71.28,  # Added required field
         "sibsp": 1,
         "parch": 0,
         "embarkationPort": "C",
+        "title": "mrs",  # Added required field
         "wereAlone": False,
         "cabinKnown": True,
     }
