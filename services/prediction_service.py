@@ -14,10 +14,10 @@ MODEL_SERVICE_API = ""
 
 
 async def predict_survival(
-    data: PassengerData, 
-    db_session: AsyncSession, 
+    data: PassengerData,
+    db_session: AsyncSession,
     model_ids: List[str] | None = None,
-    current_user: User | None = None
+    current_user: User | None = None,
 ) -> Dict[str, Union[PredictionResult, Dict]]:
     """
     Main entry for predicting survival and storing the result for multiple models:

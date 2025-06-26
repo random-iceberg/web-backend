@@ -45,7 +45,9 @@ async def predict_passenger_survival(
     try:
         async_session = request.state.async_session  # This is a factory
         async with async_session() as db_session:  # Create a session instance
-            results = await predict_survival(data, db_session, data.model_ids, current_user)
+            results = await predict_survival(
+                data, db_session, data.model_ids, current_user
+            )
             return MultiModelPredictionResult.model_validate(results)
 
     except ValueError as ve:
