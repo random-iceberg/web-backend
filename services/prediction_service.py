@@ -25,15 +25,6 @@ async def predict_survival(
     """
     MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
 
-    async with httpx.AsyncClient() as client:
-        models_response = await client.get(f"{MODEL_SERVICE_URL}/models/")
-        models_response.raise_for_status()
-        model_id = models_response.json()[0]["id"]
-        # TODO: change how model_id is determined.
-        # But to what?
-        # Do logged in users have the option to choose a model now?
-        # Non-logged in users get some default model? Which one?
-
     # Domain-specific validation (beyond Pydantic)
     await _validate_passenger_data(data)
 
@@ -134,7 +125,7 @@ async def _inference_model_call(
             "fare": data.fare,
             "travelled_alone": data.wereAlone,
             "embarked": embarked_mapping[data.embarkationPort],
-            "title": data.title[0].lower() + data.title[1:] if data.title else None,
+            "title": data.title,
             "cabin_known": data.cabinKnown,
             "sibsp": data.sibsp,
             "parch": data.parch,
