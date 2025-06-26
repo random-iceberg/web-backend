@@ -145,6 +145,7 @@ async def test_get_prediction_history_anonymous(client: TestClient):
     response = client.get("/predict/history")
     assert response.status_code == 403
 
+
 async def test_assert_different_user_history(client: TestClient, mk_user):
     user_id_one = await mk_user(1)
     user_id_two = await mk_user(2)

@@ -85,7 +85,7 @@ async def get_prediction_history(
     Retrieves the 10 most recent predictions for the authenticated user.
     """
     correlation_id = getattr(request.state, "correlation_id", None)
-    
+
     if not current_user or current_user.role not in ["user", "admin"]:
         raise HTTPException(status_code=403, detail="Forbidden")
 
