@@ -14,6 +14,10 @@ class PassengerData(BaseModel):
     fare: float = Field(..., gt=0, description="Passenger's fare")
     sibsp: int = Field(..., ge=0, description="Number of siblings/spouses aboard")
     parch: int = Field(..., ge=0, description="Number of parents/children aboard")
+    fare: float | None = Field(None, ge=0, le=500, description="Ticket fare")
+    title: Literal["Master", "Miss", "Mr", "Mrs", "Rare"] | None = Field(
+        None, description="Passenger title"
+    )
     passengerClass: Literal[1, 2, 3] = Field(
         ..., description="Class of the ticket (1st, 2nd, 3rd)"
     )
