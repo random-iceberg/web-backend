@@ -1,6 +1,7 @@
+import asyncio
 import logging
 import os
-from typing import Dict
+from typing import Dict, List, Union
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,59 +9,86 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.schemas import Prediction, User
 from models.schemas import PassengerData, PredictionResult
 
-# TODO: remove httpx, do over the network container yapping #
 logger = logging.getLogger(__name__)
 MODEL_SERVICE_API = ""
 
 
 async def predict_survival(
-    data: PassengerData, db_session: AsyncSession, current_user: User | None = None
-) -> PredictionResult:
+    data: PassengerData,
+    db_session: AsyncSession,
+    model_ids: List[str] | None = None,
+    current_user: User | None = None,
+) -> Dict[str, Union[PredictionResult, Dict]]:
     """
-    Main entry for predicting survival and storing the result:
+    Main entry for predicting survival and storing the result for multiple models:
       1. (Optionally) validate any domain-specific rules.
-      2. Send payload to the external Model API.
-      3. Store prediction in database.
-      4. Format and return the prediction result.
+      2. Send payload to the external Model API for each selected model in parallel.
+      3. Store prediction in database (for the first successful prediction, or consider storing all).
+      4. Aggregate and return the prediction results for each model.
     """
     MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
-
-    async with httpx.AsyncClient() as client:
-        models_response = await client.get(f"{MODEL_SERVICE_URL}/models/")
-        models_response.raise_for_status()
-        model_id = models_response.json()[0][
-            "id"
-        ]  # TODO: change how model_id is determined
 
     # Domain-specific validation (beyond Pydantic)
     await _validate_passenger_data(data)
 
-    # Perform inference
-    response: float = await _inference_model_call(data, db_session, model_id)
+    results: Dict[str, Union[PredictionResult, Dict]] = {}
+    tasks = []
 
-    # Format into PredictionResult
-    result: PredictionResult = _format_prediction_result(response)
+    if not model_ids:
+        # If no model_ids provided, fetching all models and using the first one (fallback)
+        async with httpx.AsyncClient() as client:
+            try:
+                models_response = await client.get(f"{MODEL_SERVICE_URL}/models/")
+                models_response.raise_for_status()
+                all_models = models_response.json()
+                if all_models:
+                    model_ids = [all_models[0]["id"]]
+                else:
+                    raise ValueError("No models available for prediction.")
+            except httpx.HTTPStatusError as e:
+                logger.error(f"Failed to fetch models from service: {e}")
+                raise ValueError("Failed to retrieve available models.")
+            except Exception as e:
+                logger.error(f"An unexpected error occurred while fetching models: {e}")
+                raise ValueError("An unexpected error occurred.")
 
-    # Store prediction in database
-    new_prediction = Prediction(
-        input_data=data.model_dump(),
-        result=result.model_dump(),
-        # This is the line that fixes the entire problem
-        user_id=current_user.id if current_user else None,
-    )
-    db_session.add(new_prediction)
-    await db_session.commit()
+    for model_id in model_ids:
+        tasks.append(_inference_model_call(data, db_session, model_id))
 
-    return result
+    predictions = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for i, model_id in enumerate(model_ids):
+        prediction_response = predictions[i]
+        if isinstance(prediction_response, Exception):
+            logger.error(
+                f"Prediction failed for model {model_id}: {prediction_response}"
+            )
+            results[model_id] = {"error": str(prediction_response)}
+        else:
+            result: PredictionResult = _format_prediction_result(prediction_response)
+            results[model_id] = result
+            # Store prediction in database (only the first successful one)
+            if isinstance(result, PredictionResult):
+                new_prediction = Prediction(
+                    input_data=data.model_dump(),
+                    result=result.model_dump(),
+                    # This is the line that fixes the entire problem
+                    user_id=current_user.id if current_user else None,
+                )
+                db_session.add(new_prediction)
+                await (
+                    db_session.commit()
+                )  # Committing after each prediction for now, considering batching
+
+    return results
 
 
-# TODO: mock response about invalid data
 async def _validate_passenger_data(data: PassengerData) -> None:
     if data.passengerClass not in [1, 2, 3]:
         raise ValueError("Invalid passenger class: must be 1, 2 or 3.")
 
     if data.sex.lower() not in ["male", "female"]:
-        raise ValueError("Invalid sex: must be 'male' or 'female'")
+        raise ValueError("Invalid sex: must be 'male' or 'female'.")
 
     if not isinstance(data.age, (int, float)):
         raise ValueError("Invalid age: must be a number.")
@@ -90,25 +118,27 @@ async def _inference_model_call(
     data: PassengerData, db_session: AsyncSession, model_id: str
 ) -> Dict:
     """
-    TODO: change this behavior later.
+    Calls the external model service for prediction.
     """
     MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
 
     async with httpx.AsyncClient() as client:
-        # TODO: massive TODO, fix the manual remapping
         embarked_mapping = {"C": "cherbourg", "Q": "queenstown", "S": "southhampton"}
-        input = {
+        input_data = {
             "pclass": data.passengerClass,
             "sex": data.sex,
             "age": data.age,
-            "fare": "200",
+            "fare": data.fare,
             "travelled_alone": data.wereAlone,
             "embarked": embarked_mapping[data.embarkationPort],
-            "title": "mr",
+            "title": data.title,
+            "cabin_known": data.cabinKnown,
+            "sibsp": data.sibsp,
+            "parch": data.parch,
         }
 
         predict_response = await client.post(
-            f"{MODEL_SERVICE_URL}/models/{model_id}/predict", json=input
+            f"{MODEL_SERVICE_URL}/models/{model_id}/predict", json=input_data
         )
         predict_response.raise_for_status()
         return {

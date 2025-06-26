@@ -10,8 +10,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from dependencies.auth import has_role
 from db.schemas import Prediction, User
 from dependencies.auth import AnyRole, get_current_user
+from models.schemas import MultiModelPredictionResult, PassengerData, PredictionResult
 from services.prediction_service import predict_survival
-from models.schemas import PassengerData, PredictionResult
 
 # Configure module-level logger
 logger = logging.getLogger(__name__)
@@ -19,13 +19,24 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/", response_model=PredictionResult, summary="Predict Titanic Survival")
+@router.post(
+    "/", response_model=MultiModelPredictionResult, summary="Predict Titanic Survival"
+)
 async def predict_passenger_survival(
     data: PassengerData,
     request: Request,
     role: AnyRole,
     current_user: Annotated[User | None, Depends(get_current_user)],
-) -> PredictionResult:
+) -> MultiModelPredictionResult:
+    # Ensure model_ids is not empty if provided
+    if data.model_ids is not None and not data.model_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="If 'model_ids' is provided, it cannot be an empty list.",
+            headers={
+                "X-Correlation-ID": getattr(request.state, "correlation_id", None)
+            },
+        )
     """
     Endpoint to predict the survival of a Titanic passenger.
     This now associates the prediction with the logged-in user.
@@ -33,11 +44,12 @@ async def predict_passenger_survival(
     correlation_id = getattr(request.state, "correlation_id", None)
 
     try:
-        async_session = request.state.async_session
-        async with async_session() as db_session:
-            # Pass the user object to the service layer so it can be saved.
-            result = await predict_survival(data, db_session, current_user)
-            return result
+        async_session = request.state.async_session  # This is a factory
+        async with async_session() as db_session:  # Create a session instance
+            results = await predict_survival(
+                data, db_session, data.model_ids, current_user
+            )
+            return MultiModelPredictionResult.model_validate(results)
 
     except ValueError as ve:
         logger.warning("Validation error during prediction", exc_info=ve)

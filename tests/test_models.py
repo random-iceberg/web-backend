@@ -1,6 +1,7 @@
 import uuid
 from unittest.mock import AsyncMock, patch
 
+import httpx
 from fastapi.testclient import TestClient
 
 
@@ -114,5 +115,21 @@ async def test_delete_nonexistent_model(client: TestClient, admin_user_token: st
     """Test DELETE /models/{id} with non-existent ID and admin role"""
     headers = {"Authorization": f"Bearer {admin_user_token}"}
     fake_id = str(uuid.uuid4())
-    response = client.delete(f"/models/{fake_id}", headers=headers)
+
+    # Mock the model service GET request to return 404
+    async def mock_get_404(*args, **kwargs):
+        class Response:
+            status_code = 404
+
+            def raise_for_status(self):
+                raise httpx.HTTPStatusError(
+                    message="Not Found",
+                    request=httpx.Request("GET", f"http://model:8000/models/{fake_id}"),
+                    response=self,
+                )
+
+        return Response()
+
+    with patch("httpx.AsyncClient.get", new=AsyncMock(side_effect=mock_get_404)):
+        response = client.delete(f"/models/{fake_id}", headers=headers)
     assert response.status_code == 404
