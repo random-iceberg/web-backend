@@ -7,10 +7,11 @@ from pydantic import BaseModel
 from sqlalchemy import desc, select
 from sqlalchemy.exc import SQLAlchemyError
 
+from dependencies.auth import has_role
 from db.schemas import Prediction, User
 from dependencies.auth import AnyRole, get_current_user
-from models.schemas import PassengerData, PredictionResult
 from services.prediction_service import predict_survival
+from models.schemas import PassengerData, PredictionResult
 
 # Configure module-level logger
 logger = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ class PredictionHistory(BaseModel):
     summary="Get Recent Predictions",
 )
 async def get_prediction_history(
-    request: Request, current_user: Annotated[User | None, Depends(get_current_user)]
+    request: Request, current_user: Annotated[User | None, Depends(has_role(["user", "admin"]))]
 ):
     """
     Retrieves the 10 most recent predictions for the authenticated user.
