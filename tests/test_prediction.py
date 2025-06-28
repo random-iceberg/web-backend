@@ -71,13 +71,12 @@ async def test_predict_success(client: TestClient):
     )
 
     data = response.json()
-    # The response is now a MultiModelPredictionResult which is a dict
-    assert isinstance(data, dict), "Response should be a dictionary"
-    assert "mock-model-id" in data, "Response should contain the mock model ID"
-
+    assert "mock-model-id" in data, f"Response missing model ID. Got: {data}"
     model_result = data["mock-model-id"]
     assert "survived" in model_result, "Model result missing 'survived' field"
     assert "probability" in model_result, "Model result missing 'probability' field"
+    assert isinstance(model_result["survived"], bool)
+    assert 0 <= model_result["probability"] <= 1
 
 
 async def test_get_prediction_history_empty(client: TestClient):
