@@ -101,6 +101,15 @@ def has_role(allowed_roles: list[str]):
 
 AnyRole = Annotated[str, Depends(get_user_role)]
 AdminRole = Annotated[str, Depends(has_role(["admin"]))]
+NonAnonRole = Annotated[str, Depends(has_role(["admin", "user"]))]
+
+
+def non_anon_user(user: CurrentUser, _: NonAnonRole):
+    assert user is not None
+    return user
+
+
+NonAnonUser = Annotated[User, Depends(non_anon_user)]
 
 
 def validate_not_expired(payload: Any):

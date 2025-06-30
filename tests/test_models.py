@@ -39,7 +39,7 @@ async def test_train_model_success(admin_client: TestClient):
         "features": ["pclass", "sex", "age", "fare"],
     }
     with (
-        patch("httpx.AsyncClient.get", new=AsyncMock(return_value={"status": "ok"})),
+        patch("httpx.AsyncClient.get", new=AsyncMock()),
         patch(
             "httpx.AsyncClient.post",
             new=AsyncMock(side_effect=_mocked_train_post_async),
@@ -95,7 +95,7 @@ async def test_delete_model_success(admin_client: TestClient):
         "features": ["pclass", "sex", "age"],
     }
     with (
-        patch("httpx.AsyncClient.get", new=AsyncMock(return_value={"status": "ok"})),
+        patch("httpx.AsyncClient.get", new=AsyncMock()),
         patch(
             "httpx.AsyncClient.post",
             new=AsyncMock(side_effect=_mocked_train_post_async),

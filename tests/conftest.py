@@ -33,7 +33,7 @@ def postgres_container():
 async def async_engine_test(postgres_container: PostgresContainer):
     """Fixture for async database engine for tests."""
     url = postgres_container.get_connection_url()
-    engine = create_async_engine(url)
+    engine = create_async_engine(url, echo=False)
     # Clean the database
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

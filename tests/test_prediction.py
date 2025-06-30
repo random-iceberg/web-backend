@@ -1,5 +1,7 @@
+from collections.abc import Awaitable, Callable
 from unittest.mock import AsyncMock, patch
 
+from fastapi import status
 from fastapi.testclient import TestClient
 
 
@@ -79,28 +81,9 @@ async def test_predict_success(client: TestClient):
     assert 0 <= model_result["probability"] <= 1
 
 
-async def test_get_prediction_history_empty(client: TestClient):
-    """Test GET /predict/history endpoint when history is empty"""
-    with (
-        patch(
-            "httpx.AsyncClient.get", new=AsyncMock(side_effect=_mocked_model_list_async)
-        ),
-        patch(
-            "httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)
-        ),
-    ):
-        response = client.get("/predict/history")
-    assert response.status_code == 200
-
-    data = response.json()
-    assert isinstance(data, list)
-    assert len(data) == 0  # Database is empty here
-
-
-# TODO: add separate test: call /predict a few times, then check /predict/history
-async def test_get_prediction_history(client: TestClient):
+async def test_get_prediction_history(user_client: TestClient):
     """Test GET /predict/history endpoint with existing predictions"""
-    # First, make a few predictions
+
     payload = {
         "passengerClass": 1,
         "sex": "female",
@@ -122,14 +105,89 @@ async def test_get_prediction_history(client: TestClient):
         ),
     ):
         for _ in range(3):
-            client.post("/predict/", json=payload)  # Use /predict/ to avoid redirect
+            _ = user_client.post("/predict", json=payload).raise_for_status()
 
-        response = client.get("/predict/history")
+        response = user_client.get("/predict/history")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
-    if len(data) > 0:
-        history_item = data[0]
-        assert "timestamp" in history_item
-        assert "input" in history_item
-        assert "output" in history_item
+    assert len(data) == 3
+
+
+async def test_get_prediction_history_anonymous(client: TestClient):
+    # Make prediction. #
+    payload = {
+        "passengerClass": 1,
+        "sex": "female",
+        "age": 38,
+        "fare": 71.28,  # Added required field
+        "sibsp": 1,
+        "parch": 0,
+        "embarkationPort": "C",
+        "title": "mrs",  # Added required field
+        "wereAlone": False,
+        "cabinKnown": True,
+    }
+    with (
+        patch(
+            "httpx.AsyncClient.get", new=AsyncMock(side_effect=_mocked_model_list_async)
+        ),
+        patch(
+            "httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)
+        ),
+    ):
+        for _ in range(3):
+            _ = client.post("/predict/", json=payload).raise_for_status()
+
+    # Check if response was successful and if response of history is empty. #
+    response = client.get("/predict/history")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+async def test_assert_different_user_history(
+    client: TestClient, mk_user: Callable[[int], Awaitable[str]]
+):
+    user_id_one = await mk_user(1)
+    user_id_two = await mk_user(2)
+
+    payload = {
+        "passengerClass": 1,
+        "sex": "female",
+        "age": 38,
+        "fare": 71.28,  # Added required field
+        "sibsp": 1,
+        "parch": 0,
+        "embarkationPort": "C",
+        "title": "mrs",  # Added required field
+        "wereAlone": False,
+        "cabinKnown": True,
+    }
+    with (
+        patch(
+            "httpx.AsyncClient.get", new=AsyncMock(side_effect=_mocked_model_list_async)
+        ),
+        patch(
+            "httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)
+        ),
+    ):
+        client.cookies.set("access_token", user_id_one)
+        for _ in range(3):
+            _ = client.post("/predict", json=payload).raise_for_status()
+        client.cookies.set("access_token", user_id_two)
+        for _ in range(2):
+            _ = client.post("/predict", json=payload).raise_for_status()
+
+    client.cookies.set("access_token", user_id_one)
+    response_one = client.get("/predict/history")
+    assert response_one.status_code == 200
+    history_one = response_one.json()
+    assert isinstance(history_one, list)
+    assert len(history_one) == 3  # User one should have 3 predictions
+
+    # 2. Test the history for the SECOND user
+    client.cookies.set("access_token", user_id_two)
+    response_two = client.get("/predict/history")
+    assert response_two.status_code == 200
+    history_two = response_two.json()
+    assert isinstance(history_two, list)
+    assert len(history_two) == 2

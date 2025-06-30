@@ -64,3 +64,15 @@ async def user_client(client: TestClient, user_user: UserData):
 @fixture()
 async def anon_client(client: TestClient):
     return client
+
+
+@fixture()
+async def mk_user(db_session: AsyncSession):
+    async def f(index: int):
+        mail = f"user{index}@example.com"
+        password = "userpassword"
+        user = await create_user(db_session, mail, password)
+        token = mk_jwt_token(user=user, jwt_key=JWT_KEY)
+        return token
+
+    return f
