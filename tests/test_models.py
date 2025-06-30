@@ -1,5 +1,5 @@
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 from fastapi import status
@@ -26,7 +26,14 @@ async def _mocked_train_post_async(*args, **kwargs):
 
 async def test_list_models(client: TestClient):
     """Test GET /models/ endpoint - accessible by all roles (anon)"""
-    response = client.get("/models/")
+    # TODO: mock a non-empty list
+    with patch("httpx.AsyncClient.get") as get:
+        resp = Mock()
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = []
+        get.return_value = resp
+
+        response = client.get("/models/")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 

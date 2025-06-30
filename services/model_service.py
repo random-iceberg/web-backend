@@ -3,6 +3,7 @@ import os
 import time
 import uuid
 from datetime import datetime
+from typing import TypedDict, cast
 
 import httpx
 from fastapi import BackgroundTasks, HTTPException
@@ -23,16 +24,24 @@ logger = logging.getLogger(__name__)
 
 MODEL_SERVICE_URL = os.getenv("MODEL_SERVICE_URL", "http://model:8000")
 
+
 # In-memory cache for models
-_model_cache = {"data": None, "timestamp": 0}
+class ModelCache(TypedDict):
+    data: list[ModelResponse] | None
+    timestamp: float
+
+
+_model_cache: ModelCache = {"data": None, "timestamp": 0}
 CACHE_EXPIRY_SECONDS = 300  # 5 minutes
 
 # Map model service algorithm codes to human-readable names
+# TODO: move this mapping to the frontend
 ALGORITHM_NAME_MAP = {
     "rf": "Random Forest",
     "svm": "SVM",
     "dt": "Decision Tree",
     "lr": "Logistic Regression",
+    "knn": "KNN",
 }
 
 
@@ -41,19 +50,20 @@ ALGORITHM_NAME_MAP = {
     wait=wait_exponential(multiplier=1, min=1, max=10),
     reraise=True,
 )
-async def _fetch_models_from_model_service() -> list[ModelResponse]:
+async def _fetch_models_from_model_service() -> dict[str, ModelResponse]:
     """
     Fetches models from the external model service with retry logic.
     """
+
     async with httpx.AsyncClient() as client:
         response = await client.get(f"{MODEL_SERVICE_URL}/models/", timeout=10.0)
         response.raise_for_status()
         model_service_models = response.json()
-        return [
-            ModelResponse(
+        return {
+            model["id"]: ModelResponse(
                 id=model["id"],
-                algorithm=ALGORITHM_NAME_MAP.get(
-                    model["params"]["algo"]["name"], model["params"]["algo"]["name"]
+                algorithm=(lambda x: ALGORITHM_NAME_MAP.get(x, x))(
+                    cast(str, model["params"]["algo"]["name"])
                 ),
                 name=model["id"],  # Model service doesn't have a 'name' field directly
                 features=model["params"]["features"],
@@ -63,9 +73,12 @@ async def _fetch_models_from_model_service() -> list[ModelResponse]:
                     if model["info"].get("created_at")
                     else None
                 ),
+                status="ready",
+                is_restricted=True,
+                is_removable=model["removable"],
             )
             for model in model_service_models
-        ]
+        }
 
 
 async def get_all_models(
@@ -101,9 +114,10 @@ async def get_all_models(
                 accuracy=model.accuracy,
                 created_at=model.created_at,
                 status=model.status,
+                is_restricted=True,
             )
 
-    model_service_models: list[ModelResponse] = []
+    model_service_models: dict[str, ModelResponse] = {}
     try:
         model_service_models = await _fetch_models_from_model_service()
     except httpx.RequestError as exc:
@@ -116,13 +130,23 @@ async def get_all_models(
     except Exception as exc:
         logger.error(f"Unexpected error fetching models from model service: {exc}")
 
-    # Merge results: prioritize DB models if ID exists in both
     merged_models: dict[str, ModelResponse] = {}
-    for model in model_service_models:
+    for model in model_service_models.values():
+        if model.id in db_models:
+            continue
+        if model.is_removable:
+            logger.warning("dangling model: %s", id)
+            # TODO: probably delete from the model backend
+            continue
+        model.name = "Default"
+        model.is_restricted = model.algorithm in ["Random Forest", "SVM"]
         merged_models[model.id] = model
 
-    for model_id, model_data in db_models.items():
-        merged_models[model_id] = model_data
+    for model in db_models.values():
+        if model.id not in model_service_models:
+            logger.warning("model exists only in the database: %s", id)
+            continue
+        merged_models[model.id] = model
 
     # Sort models by created_at, if available, otherwise by ID
     sorted_models = sorted(

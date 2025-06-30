@@ -74,6 +74,7 @@ class ModelResponse(ModelBase):
     is_restricted: bool = Field(
         False, description="True if the model is restricted for anonymous users"
     )
+    is_removable: bool = Field(default=True)
 
 
 class TrainingResponse(BaseModel):
