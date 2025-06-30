@@ -27,25 +27,15 @@ async def list_models(
         List[ModelResponse]: A list of model objects containing id, algorithm, name,
                             created_at, features, and accuracy.
     """
-    correlation_id = getattr(request.state, "correlation_id", None)
+    correlation_id = request.state.correlation_id
 
     try:
         models = await get_all_models(request.state.async_session)
         if role == "anon":
             # Filter models for anonymous users
-            filtered_models = [
-                model for model in models if model.algorithm in ["Random Forest", "SVM"]
-            ]
-            # Add is_restricted flag for frontend filtering (though not strictly needed for anon, good for consistency)
-            for model in filtered_models:
-                model.is_restricted = (
-                    False  # Anonymous users only see non-restricted models
-                )
-            return filtered_models
+            return list(filter(lambda x: not x.is_restricted, models))
         else:
             # Authenticated users see all models, mark others as restricted if not RF/SVM
-            for model in models:
-                model.is_restricted = model.algorithm not in ["Random Forest", "SVM"]
             return models
     except Exception as exc:
         logger.error(f"Failed to retrieve models: {exc}", exc_info=True)

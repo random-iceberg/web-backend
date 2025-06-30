@@ -37,3 +37,4 @@ reportExplicitAny = false
 reportUnknownArgumentType = false
 reportUnknownVariableType = false
 reportUnknownLambdaType = false
+reportUnusedCallResult = false
