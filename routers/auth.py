@@ -72,7 +72,7 @@ async def login(
         # max_age=max_age.seconds, session cookie for now
         httponly=True,
         samesite="strict",
-        secure=True
+        secure=True,
     )
     return LoginResponse()
 
