@@ -101,3 +101,8 @@ class ErrorResponse(BaseModel):
     correlation_id: str
 
     model_config = {"json_encoders": {datetime: lambda v: v.isoformat()}}
+
+
+class UserCredentials(BaseModel):
+    email: str
+    password: str

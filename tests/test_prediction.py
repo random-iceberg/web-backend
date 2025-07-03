@@ -1,5 +1,7 @@
+from collections.abc import Awaitable, Callable
 from unittest.mock import AsyncMock, patch
 
+from fastapi import status
 from fastapi.testclient import TestClient
 
 
@@ -79,11 +81,8 @@ async def test_predict_success(client: TestClient):
     assert 0 <= model_result["probability"] <= 1
 
 
-async def test_get_prediction_history(client: TestClient, mk_user):
+async def test_get_prediction_history(user_client: TestClient):
     """Test GET /predict/history endpoint with existing predictions"""
-    # First, make a few predictions
-    user_id = await mk_user(1)
-    headers = {"Authorization": f"Bearer {user_id}"}
 
     payload = {
         "passengerClass": 1,
@@ -106,9 +105,9 @@ async def test_get_prediction_history(client: TestClient, mk_user):
         ),
     ):
         for _ in range(3):
-            client.post("/predict", json=payload, headers=headers)
+            _ = user_client.post("/predict", json=payload).raise_for_status()
 
-        response = client.get("/predict/history", headers=headers)
+        response = user_client.get("/predict/history")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -138,19 +137,18 @@ async def test_get_prediction_history_anonymous(client: TestClient):
         ),
     ):
         for _ in range(3):
-            client.post("/predict/", json=payload)  # Use /predict/ to avoid redirect
+            _ = client.post("/predict/", json=payload).raise_for_status()
 
     # Check if response was successful and if response of history is empty. #
     response = client.get("/predict/history")
-    assert response.status_code == 403
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-async def test_assert_different_user_history(client: TestClient, mk_user):
+async def test_assert_different_user_history(
+    client: TestClient, mk_user: Callable[[int], Awaitable[str]]
+):
     user_id_one = await mk_user(1)
     user_id_two = await mk_user(2)
-
-    headers_one = {"Authorization": f"Bearer {user_id_one}"}
-    headers_two = {"Authorization": f"Bearer {user_id_two}"}
 
     payload = {
         "passengerClass": 1,
@@ -172,19 +170,23 @@ async def test_assert_different_user_history(client: TestClient, mk_user):
             "httpx.AsyncClient.post", new=AsyncMock(side_effect=_mocked_predict_async)
         ),
     ):
+        client.cookies.set("access_token", user_id_one)
         for _ in range(3):
-            client.post("/predict", json=payload, headers=headers_one)
+            _ = client.post("/predict", json=payload).raise_for_status()
+        client.cookies.set("access_token", user_id_two)
         for _ in range(2):
-            client.post("/predict", json=payload, headers=headers_two)
+            _ = client.post("/predict", json=payload).raise_for_status()
 
-    response_one = client.get("/predict/history", headers=headers_one)
+    client.cookies.set("access_token", user_id_one)
+    response_one = client.get("/predict/history")
     assert response_one.status_code == 200
     history_one = response_one.json()
     assert isinstance(history_one, list)
     assert len(history_one) == 3  # User one should have 3 predictions
 
     # 2. Test the history for the SECOND user
-    response_two = client.get("/predict/history", headers=headers_two)
+    client.cookies.set("access_token", user_id_two)
+    response_two = client.get("/predict/history")
     assert response_two.status_code == 200
     history_two = response_two.json()
     assert isinstance(history_two, list)

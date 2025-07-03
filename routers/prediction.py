@@ -8,7 +8,11 @@ from sqlalchemy import desc, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from db.schemas import Prediction, User
-from dependencies.auth import AnyRole, get_current_user
+from dependencies.auth import (
+    AnyRole,
+    NonAnonUser,
+    get_current_user,
+)
 from models.schemas import MultiModelPredictionResult, PassengerData, PredictionResult
 from services.prediction_service import predict_survival
 
@@ -78,16 +82,11 @@ class PredictionHistory(BaseModel):
     response_model=list[PredictionHistory],
     summary="Get Recent Predictions",
 )
-async def get_prediction_history(
-    request: Request, current_user: Annotated[User | None, Depends(get_current_user)]
-):
+async def get_prediction_history(request: Request, current_user: NonAnonUser):
     """
     Retrieves the 10 most recent predictions for the authenticated user.
     """
     correlation_id = getattr(request.state, "correlation_id", None)
-
-    if not current_user or current_user.role not in ["user", "admin"]:
-        raise HTTPException(status_code=403, detail="Forbidden")
 
     try:
         async_session = request.state.async_session
