@@ -1,6 +1,8 @@
 import uuid
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
+import httpx
+from fastapi import status
 from fastapi.testclient import TestClient
 
 
@@ -24,14 +26,20 @@ async def _mocked_train_post_async(*args, **kwargs):
 
 async def test_list_models(client: TestClient):
     """Test GET /models/ endpoint - accessible by all roles (anon)"""
-    response = client.get("/models/")
+    # TODO: mock a non-empty list
+    with patch("httpx.AsyncClient.get") as get:
+        resp = Mock()
+        resp.raise_for_status.return_value = None
+        resp.json.return_value = []
+        get.return_value = resp
+
+        response = client.get("/models/")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
-async def test_train_model_success(client: TestClient, admin_user_token: str):
+async def test_train_model_success(admin_client: TestClient):
     """Test POST /models/train endpoint with valid data and admin role"""
-    headers = {"Authorization": f"Bearer {admin_user_token}"}
     payload = {
         "algorithm": "Random Forest",
         "name": "Test Model",
@@ -44,7 +52,7 @@ async def test_train_model_success(client: TestClient, admin_user_token: str):
             new=AsyncMock(side_effect=_mocked_train_post_async),
         ),
     ):
-        response = client.post("/models/train", json=payload, headers=headers)
+        response = admin_client.post("/models/train", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert "job_id" in data
@@ -58,25 +66,35 @@ async def test_train_model_forbidden_no_token(client: TestClient):
         "name": "Test Model",
         "features": ["pclass", "sex", "age", "fare"],
     }
+
     response = client.post("/models/train", json=payload)
-    assert response.status_code == 403
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-async def test_train_model_invalid(client: TestClient, admin_user_token: str):
+async def test_train_model_forbidden_not_admin(user_client: TestClient):
+    payload = {
+        "algorithm": "Random Forest",
+        "name": "Test Model",
+        "features": ["pclass", "sex", "age", "fare"],
+    }
+
+    response = user_client.post("/models/train", json=payload)
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+async def test_train_model_invalid(admin_client: TestClient):
     """Test POST /models/train endpoint with invalid data and admin role"""
-    headers = {"Authorization": f"Bearer {admin_user_token}"}
     payload = {
         "algorithm": "Random Forest",
         "name": "Test Model",
         "features": [],  # Empty features should be rejected
     }
-    response = client.post("/models/train", json=payload, headers=headers)
+    response = admin_client.post("/models/train", json=payload)
     assert response.status_code == 400
 
 
-async def test_delete_model_success(client: TestClient, admin_user_token: str):
+async def test_delete_model_success(admin_client: TestClient):
     """Test DELETE /models/{id} endpoint with admin role"""
-    headers = {"Authorization": f"Bearer {admin_user_token}"}
     # First create a model to delete
     payload = {
         "algorithm": "SVM",
@@ -90,7 +108,7 @@ async def test_delete_model_success(client: TestClient, admin_user_token: str):
             new=AsyncMock(side_effect=_mocked_train_post_async),
         ),
     ):
-        create_response = client.post("/models/train", json=payload, headers=headers)
+        create_response = admin_client.post("/models/train", json=payload)
     assert create_response.status_code == 200
 
     # Extract job_id and convert to model_id
@@ -98,7 +116,7 @@ async def test_delete_model_success(client: TestClient, admin_user_token: str):
     model_id = job_id.replace("train_", "")
 
     # Now delete the model
-    delete_response = client.delete(f"/models/{model_id}", headers=headers)
+    delete_response = admin_client.delete(f"/models/{model_id}")
     assert delete_response.status_code == 200
     assert delete_response.json()["status"] == "success"
 
@@ -107,12 +125,34 @@ async def test_delete_model_forbidden_no_token(client: TestClient):
     """Test DELETE /models/{id} endpoint without token (anon role) - should be forbidden"""
     fake_id = str(uuid.uuid4())
     response = client.delete(f"/models/{fake_id}")
-    assert response.status_code == 403
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-async def test_delete_nonexistent_model(client: TestClient, admin_user_token: str):
-    """Test DELETE /models/{id} with non-existent ID and admin role"""
-    headers = {"Authorization": f"Bearer {admin_user_token}"}
+async def test_delete_model_forbidden_not_admin(user_client: TestClient):
+    """Test DELETE /models/{id} endpoint without token (anon role) - should be forbidden"""
     fake_id = str(uuid.uuid4())
-    response = client.delete(f"/models/{fake_id}", headers=headers)
+    response = user_client.delete(f"/models/{fake_id}")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+async def test_delete_nonexistent_model(admin_client: TestClient):
+    """Test DELETE /models/{id} with non-existent ID and admin role"""
+    fake_id = str(uuid.uuid4())
+
+    # Mock the model service GET request to return 404
+    async def mock_get_404(*args, **kwargs):
+        class Response:
+            status_code = 404
+
+            def raise_for_status(self):
+                raise httpx.HTTPStatusError(
+                    message="Not Found",
+                    request=httpx.Request("GET", f"http://model:8000/models/{fake_id}"),
+                    response=self,
+                )
+
+        return Response()
+
+    with patch("httpx.AsyncClient.get", new=AsyncMock(side_effect=mock_get_404)):
+        response = admin_client.delete(f"/models/{fake_id}")
     assert response.status_code == 404

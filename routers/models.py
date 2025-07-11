@@ -27,13 +27,22 @@ async def list_models(
         List[ModelResponse]: A list of model objects containing id, algorithm, name,
                             created_at, features, and accuracy.
     """
+    correlation_id = request.state.correlation_id
+
     try:
         models = await get_all_models(request.state.async_session)
-        return models
+        if role == "anon":
+            # Filter models for anonymous users
+            return list(filter(lambda x: not x.is_restricted, models))
+        else:
+            # Authenticated users see all models, mark others as restricted if not RF/SVM
+            return models
     except Exception as exc:
         logger.error(f"Failed to retrieve models: {exc}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve models: {str(exc)}"
+            status_code=500,
+            detail=f"Failed to retrieve models: {str(exc)}",
+            headers={"X-Correlation-ID": correlation_id},
         )
 
 
@@ -54,16 +63,23 @@ async def train_model(
     Returns:
         TrainingResponse: Object containing job_id, status, and message
     """
+    correlation_id = getattr(request.state, "correlation_id", None)
     try:
         response = await start_model_training(
             request.state.async_session, model_data, background_tasks
         )
         return response
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+            headers={"X-Correlation-ID": correlation_id},
+        )
     except Exception as exc:
         raise HTTPException(
-            status_code=500, detail=f"Failed to start model training: {str(exc)}"
+            status_code=500,
+            detail=f"Failed to start model training: {str(exc)}",
+            headers={"X-Correlation-ID": correlation_id},
         )
 
 
@@ -82,12 +98,20 @@ async def remove_model(
     Returns:
         DeleteResponse: Object containing status and message
     """
+    correlation_id = getattr(request.state, "correlation_id", None)
+
     try:
         response = await delete_model(request.state.async_session, model_id)
         return response
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+            headers={"X-Correlation-ID": correlation_id},
+        )
     except Exception as exc:
         raise HTTPException(
-            status_code=500, detail=f"Failed to delete model: {str(exc)}"
+            status_code=500,
+            detail=f"Failed to delete model: {str(exc)}",
+            headers={"X-Correlation-ID": correlation_id},
         )

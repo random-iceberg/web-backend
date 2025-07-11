@@ -10,6 +10,7 @@ dependencies = [
     "asyncpg",
     "pyjwt",
     "argon2-cffi",
+    "tenacity",
 ] # TODO: pin versions
 
 [tool.setuptools]
@@ -36,3 +37,4 @@ reportExplicitAny = false
 reportUnknownArgumentType = false
 reportUnknownVariableType = false
 reportUnknownLambdaType = false
+reportUnusedCallResult = false

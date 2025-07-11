@@ -1,5 +1,7 @@
 import logging
+from datetime import datetime, timedelta, timezone
 
+import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import HTTPException
@@ -43,3 +45,25 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> User
         raise HTTPException(status_code=401, detail="Invalid credentials.")
 
     return user
+
+
+def mk_jwt_token(
+    *,
+    user: User,
+    max_age: timedelta | None = None,
+    issued_at: datetime | None = None,
+    jwt_key: str,
+):
+    payload = {}
+    # TODO(never): 'sub': use something that is not the primary key
+    payload["sub"] = str(user.id)
+    payload["role"] = user.role
+
+    if max_age is None:
+        max_age = timedelta(hours=1)
+    if issued_at is None:
+        issued_at = datetime.now(timezone.utc)
+    payload["iat"] = issued_at
+    payload["exp"] = issued_at + max_age
+
+    return jwt.encode(payload, jwt_key, algorithm="HS256")

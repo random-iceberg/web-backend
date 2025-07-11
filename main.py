@@ -1,15 +1,20 @@
 import logging
 import time
+import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from os import environ
 
 from asyncpg.exceptions import InvalidPasswordError
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import create_async_engine
 
 import db
+from models.schemas import ErrorResponse
 from routers import auth, models, prediction
 from services import user_service
 
@@ -109,23 +114,40 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    @app.middleware("http")
+    async def add_correlation_id(request: Request, call_next):
+        correlation_id = str(uuid.uuid4())
+        request.state.correlation_id = correlation_id
+        response = await call_next(request)
+        response.headers["X-Correlation-ID"] = correlation_id
+        return response
+
     # logging middleware shifted here from models.py, Recommended by Lev
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
+        correlation_id = getattr(request.state, "correlation_id", None)
         start_time = time.time()
         client_ip = request.headers.get("x-forwarded-for") or (
             request.client.host if request.client else "unknown"
         )
         logger.info(
-            f"Request: {request.method} {request.url.path} - Client: {client_ip}"
+            f"Request: {request.method} {request.url.path} - Client: {client_ip} - Correlation ID: {correlation_id}"
         )
 
         response = await call_next(request)
 
         process_time = time.time() - start_time
         logger.info(
-            f"Response: {response.status_code} - Process Time: {process_time:.4f}s"
+            f"Response: {response.status_code} - Process Time: {process_time:.4f}s - Correlation ID: {correlation_id}"
         )
+        return response
+
+    @app.middleware("http")
+    async def ensure_correlation_id(request: Request, call_next):
+        response = await call_next(request)
+        if "X-Correlation-ID" not in response.headers:
+            correlation_id = getattr(request.state, "correlation_id", str(uuid.uuid4()))
+            response.headers["X-Correlation-ID"] = correlation_id
         return response
 
     # include routers (prediction & models)
@@ -145,8 +167,85 @@ def create_app() -> FastAPI:
     async def root_redirect():
         return RedirectResponse(url="/docs")
 
+    # Register exception handlers
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        correlation_id = getattr(request.state, "correlation_id", None)
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=ErrorResponse(
+                detail=exc.detail,
+                code=f"ERR_{exc.status_code}",
+                timestamp=datetime.now(timezone.utc),
+                correlation_id=correlation_id,
+            ).model_dump(mode="json"),
+        )
+
+    @app.exception_handler(Exception)
+    async def generic_exception_handler(request: Request, exc: Exception):
+        correlation_id = getattr(request.state, "correlation_id", None)
+        return JSONResponse(
+            status_code=500,
+            content=ErrorResponse(
+                detail="An unexpected error occurred.",
+                code="ERR_500",
+                timestamp=datetime.now(timezone.utc),
+                correlation_id=correlation_id,
+            ).model_dump(mode="json"),
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ):
+        correlation_id = getattr(request.state, "correlation_id", None)
+        errors = exc.errors()
+        field_errors = [f"{error['loc'][1]}: {error['msg']}" for error in errors]
+        return JSONResponse(
+            status_code=422,
+            content=ErrorResponse(
+                detail="Validation Error: " + ", ".join(field_errors),
+                code="ERR_422",
+                timestamp=datetime.now(timezone.utc),
+                correlation_id=correlation_id,
+            ).model_dump(mode="json"),
+        )
+
     return app
+
+
+def custom_openapi():
+    """
+    Custom OpenAPI schema to configure Bearer authentication in Swagger UI.
+    """
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+        tags=app.openapi_tags,
+    )
+
+    # Define the Bearer security scheme
+    openapi_schema["components"]["securitySchemes"] = {
+        "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Enter the JWT token obtained from /auth/login",
+        }
+    }
+
+    # Apply security globally (optional - you can also apply per-route)
+    openapi_schema["security"] = [{"bearerAuth": []}]
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
 
 
 # Instantiate the application
 app = create_app()
+# app.openapi = custom_openapi
