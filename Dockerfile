@@ -1,12 +1,13 @@
 # base
-FROM ghcr.io/astral-sh/uv:0.7.4-python3.13-bookworm-slim AS base
+FROM ghcr.io/astral-sh/uv:0.7.20-bookworm-slim AS base
 
 RUN apt-get update && apt-get install -y curl
 
 WORKDIR /app
 
 COPY ./pyproject.toml .
-RUN uv sync --no-cache --no-install-project
+COPY uv.lock .
+RUN uv sync --locked --no-cache --no-install-project
 
 # dev
 FROM base AS dev

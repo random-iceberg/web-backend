@@ -139,7 +139,7 @@ async def get_all_models(
             # TODO: probably delete from the model backend
             continue
         model.name = "Default"
-        model.is_restricted = model.algorithm in ["Random Forest", "SVM"]
+        model.is_restricted = model.algorithm not in ["Random Forest", "SVM"]
         merged_models[model.id] = model
 
     for model in db_models.values():
