@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
         async_session = await db.helpers.init_db(engine)
     except InvalidPasswordError:
         # The password was provided but authentication failed
-        msg = f"Invalid password provided for DB user '{user}': {password!r}"
+        msg = f"Invalid password provided for DB user '{user}'."
         logger.error(msg)
         raise RuntimeError(msg)
     except Exception as exc:
